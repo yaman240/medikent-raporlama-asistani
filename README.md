@@ -1,16 +1,21 @@
-# Medikent Raporlama Asistanı v2.2
+# Medikent Raporlama Asistanı v2.3
 
-## Düzeltme
-Tanımlar ekranı artık gerçek anlamda düzenlenebilir.
+## Hazır gelen bölümler
+- Çocuk Sağlığı ve Hastalıkları
+- Çocuk Cerrahisi
+- Kadın Hastalıkları ve Doğum
+- Genel Cerrahi
+- Kulak Burun Boğaz
+- Ortopedi ve Travmatoloji
+- Kalp ve Damar Cerrahisi
+- Kardiyoloji
+- Beyin ve Sinir Cerrahisi
+- Üroloji
+- Cildiye (Dermatoloji)
+- İç Hastalıkları (Dahiliye)
+- Algoloji
+- Plastik, Rekonstrüktif ve Estetik Cerrahi
 
-### Bölümler
-- Bölüm adı satır içinde değiştirilebilir
-- Kaydet butonuyla güncellenir
-
-### Doktorlar
-- Doktor adı satır içinde değiştirilebilir
-- Doktorun bağlı olduğu bölüm değiştirilebilir
-- Aktif / Pasif yapılabilir
-- Kaydet butonuyla güncellenir
-
-Faaliyet girişinde yalnızca tanımlı bölüm ve aktif doktorlar seçilebilir.
+Bu bölümler başlangıçta otomatik gelir.
+Mevcut kullanıcıların tarayıcı verileri varsa eksik hazır bölümler otomatik eklenir.
+Bölüm ve doktorlar yine Tanımlar ekranından düzenlenebilir.

@@ -7,12 +7,27 @@ const defaultTypes = [
   'TV Programı','Radyo','Etkinlik','Diğer'
 ];
 
-let departments = JSON.parse(localStorage.getItem('medikent_departments_v21') || 'null') || [
-  {id:'dep-cocuk', name:'Çocuk Sağlığı ve Hastalıkları'}
+const defaultDepartments = [
+  {id:'dep-cocuk-sagligi', name:'Çocuk Sağlığı ve Hastalıkları'},
+  {id:'dep-cocuk-cerrahisi', name:'Çocuk Cerrahisi'},
+  {id:'dep-kadin-dogum', name:'Kadın Hastalıkları ve Doğum'},
+  {id:'dep-genel-cerrahi', name:'Genel Cerrahi'},
+  {id:'dep-kbb', name:'Kulak Burun Boğaz'},
+  {id:'dep-ortopedi', name:'Ortopedi ve Travmatoloji'},
+  {id:'dep-kvc', name:'Kalp ve Damar Cerrahisi'},
+  {id:'dep-kardiyoloji', name:'Kardiyoloji'},
+  {id:'dep-beyin-sinir', name:'Beyin ve Sinir Cerrahisi'},
+  {id:'dep-uroloji', name:'Üroloji'},
+  {id:'dep-cildiye', name:'Cildiye (Dermatoloji)'},
+  {id:'dep-dahiliye', name:'İç Hastalıkları (Dahiliye)'},
+  {id:'dep-algoloji', name:'Algoloji'},
+  {id:'dep-plastik', name:'Plastik, Rekonstrüktif ve Estetik Cerrahi'}
 ];
 
+let departments = JSON.parse(localStorage.getItem('medikent_departments_v21') || 'null') || defaultDepartments;
+
 let doctors = JSON.parse(localStorage.getItem('medikent_doctors_v21') || 'null') || [
-  {id:'doc-gokhan-gozun', name:'Uzm. Dr. Gökhan Gözün', departmentId:'dep-cocuk', active:true}
+  {id:'doc-gokhan-gozun', name:'Uzm. Dr. Gökhan Gözün', departmentId:'dep-cocuk-sagligi', active:true}
 ];
 
 function saveMasterLocal(){
@@ -20,6 +35,19 @@ function saveMasterLocal(){
   localStorage.setItem('medikent_doctors_v21', JSON.stringify(doctors));
 }
 saveMasterLocal();
+
+
+function mergeDefaultDepartments(){
+  let changed=false;
+  for(const dep of defaultDepartments){
+    if(!departments.some(d=>d.name.toLocaleLowerCase('tr')===dep.name.toLocaleLowerCase('tr'))){
+      departments.push(dep);
+      changed=true;
+    }
+  }
+  if(changed) saveMasterLocal();
+}
+mergeDefaultDepartments();
 
 const sampleData = [
   {
