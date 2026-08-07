@@ -1,17 +1,17 @@
-# Medikent Raporlama Asistanı v2.8
+# Medikent Raporlama Asistanı v2.9
 
-## Kritik veri düzeltmeleri
+## Doktor / bölüm eşleşmesi kalıcı düzeltme
 
-- Doktorlar artık Firebase listesi geldiğinde silinmez/ezilmez.
-- Yeni doktor Firebase'e başarıyla yazılmadan "kaydedildi" denmez.
-- Yerel ve Firebase doktor listeleri ID bazında birleştirilir.
-- Faaliyet kaydı Firebase'e başarıyla yazılmadan başarı mesajı verilmez.
-- Fotoğraf seçilmişse Storage yüklemesi başarısız olduğunda kayıt tamamlanmaz.
-- Kayıtlar ekranında fotoğraf sayısı görünür.
-- Faaliyet kaydedilince rapor ayı otomatik o faaliyetin ayına geçer.
-- Firebase'den kayıtlar yüklenince rapor ayı son kayıt ayına otomatik geçer.
-- Silme işlemi yeniden Firebase ile senkron çalışır.
+Bu sürüm doktorların Tanımlar ekranında görünmesine rağmen Faaliyet ekranına gelmemesi sorununu düzeltir.
 
-## Fotoğraf için önemli
-Cloud Storage for Firebase güncel olarak Blaze plan gerektirir.
-Storage etkin değilse uygulama artık fotoğrafı kaydetmiş gibi davranmaz; açık hata gösterir.
+### Değişiklikler
+- Doktor artık hem departmentId hem departmentName ile saklanır.
+- Faaliyet ekranındaki doktor filtresi yalnızca ID'ye bağlı değildir.
+- Eski Firebase bölüm kimlikleri bölüm adı üzerinden otomatik eşleştirilir.
+- Eski doktor kayıtları açılışta canonical bölüm ID'sine otomatik taşınır.
+- Bölüm seçildiğinde doktor listesi anında yeniden oluşturulur.
+- Yeni doktor kaydedildiğinde faaliyet ekranındaki liste anında yenilenir.
+- Aktif/Pasif değişikliği anında faaliyet ekranına yansır.
+- Bölümde aktif doktor yoksa açık uyarı seçeneği görünür.
+
+Bu sürüm özellikle eski Firebase kayıtları ile yeni hazır bölüm kimliklerinin çakışmasını çözmek için hazırlanmıştır.

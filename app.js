@@ -168,23 +168,61 @@ function populateDefs(){
 }
 
 function departmentNameById(id){
-  return departments.find(d=>d.id===id)?.name || id || '';
+  return departments.find(d=>d.id===id)?.name || '';
+}
+
+function normalizeTr(s=''){
+  return String(s).trim().toLocaleLowerCase('tr');
+}
+
+function departmentByAny(value){
+  if(!value) return null;
+  return departments.find(d=>d.id===value) ||
+         departments.find(d=>normalizeTr(d.name)===normalizeTr(value)) ||
+         null;
 }
 
 function doctorNameById(id){
-  return doctors.find(d=>d.id===id)?.name || id || '';
+  return doctors.find(d=>d.id===id)?.name || '';
+}
+
+function doctorMatchesDepartment(doctor, selectedDepartmentId){
+  if(!doctor || doctor.active===false) return false;
+
+  const selectedDep = departmentByAny(selectedDepartmentId);
+  if(!selectedDep) return false;
+
+  // 1) Doğrudan ID eşleşmesi
+  if(doctor.departmentId && doctor.departmentId===selectedDep.id) return true;
+
+  // 2) Doktor kaydındaki bölüm adı eşleşmesi
+  if(doctor.departmentName &&
+     normalizeTr(doctor.departmentName)===normalizeTr(selectedDep.name)) return true;
+
+  // 3) Eski ID'yi bölüm adına çevirerek eşleştir
+  const doctorDep = departmentByAny(doctor.departmentId);
+  if(doctorDep &&
+     normalizeTr(doctorDep.name)===normalizeTr(selectedDep.name)) return true;
+
+  return false;
 }
 
 function updateDoctors(selected=''){
   const departmentId=$('branch').value;
   const filtered=doctors
-    .filter(d=>d.departmentId===departmentId && d.active!==false)
+    .filter(d=>doctorMatchesDepartment(d,departmentId))
     .sort((a,b)=>a.name.localeCompare(b.name,'tr'));
 
   $('doctor').innerHTML='<option value="">Doktor seçiniz</option>'+
     filtered.map(d=>`<option value="${esc(d.id)}">${esc(d.name)}</option>`).join('');
 
-  if(selected) $('doctor').value=selected;
+  if(selected && filtered.some(d=>d.id===selected)){
+    $('doctor').value=selected;
+  }
+
+  if(departmentId && filtered.length===0){
+    $('doctor').innerHTML='<option value="">Bu bölüm için aktif doktor tanımlanmamış</option>';
+  }
 }
 
 function renderMasterLists(){
@@ -210,7 +248,11 @@ function renderMasterLists(){
           <input id="doc-name-${d.id}" value="${esc(d.name)}" aria-label="Doktor adı">
           <select id="doc-dep-${d.id}" aria-label="Doktor bölümü">
             ${departments.slice().sort((a,b)=>a.name.localeCompare(b.name,'tr')).map(dep=>
-              `<option value="${esc(dep.id)}" ${dep.id===d.departmentId?'selected':''}>${esc(dep.name)}</option>`
+              `<option value="${esc(dep.id)}" ${
+                dep.id===d.departmentId ||
+                normalizeTr(dep.name)===normalizeTr(d.departmentName||'')
+                ?'selected':''
+              }>${esc(dep.name)}</option>`
             ).join('')}
           </select>
           <button class="small-btn save-row" onclick="saveDoctorEdit('${d.id}')">Kaydet</button>
@@ -236,7 +278,10 @@ document.querySelectorAll('.nav').forEach(btn=>btn.addEventListener('click',()=>
   if(btn.dataset.view==='records') renderRecords();
 }));
 
-$('branch').addEventListener('change',()=>updateDoctors());
+$('branch').addEventListener('change',()=>{
+  $('doctor').value='';
+  updateDoctors();
+});
 $('type').addEventListener('change',toggleConditionalFields);
 
 
@@ -442,7 +487,10 @@ window.editActivity=id=>{
 
   let docValue=a.doctor;
   if(!doctors.some(d=>d.id===docValue)){
-    const foundDoc=doctors.find(d=>d.name===a.doctor || d.name===a.doctorName);
+    const foundDoc=doctors.find(d=>
+      normalizeTr(d.name)===normalizeTr(a.doctor||'') ||
+      normalizeTr(d.name)===normalizeTr(a.doctorName||'')
+    );
     docValue=foundDoc?.id || '';
   }
   updateDoctors(docValue);
@@ -737,10 +785,12 @@ if(doctorForm){
       return;
     }
 
+    const dep=departmentByAny(departmentId);
     const doctor={
       id:crypto.randomUUID(),
       name,
-      departmentId,
+      departmentId: dep?.id || departmentId,
+      departmentName: dep?.name || '',
       active:true
     };
 
@@ -758,6 +808,12 @@ if(doctorForm){
     saveMasterLocal();
     populateDefs();
     renderMasterLists();
+
+    // Faaliyet ekranında aynı bölüm seçiliyse doktor listesine anında düşür.
+    if($('branch').value===doctor.departmentId){
+      updateDoctors(doctor.id);
+    }
+
     doctorForm.reset();
     alert('Doktor kaydedildi.');
   });
@@ -792,8 +848,10 @@ window.saveDoctorEdit=async id=>{
     alert('Bu doktor zaten mevcut.');
     return;
   }
+  const dep=departmentByAny(departmentId);
   d.name=name;
-  d.departmentId=departmentId;
+  d.departmentId=dep?.id || departmentId;
+  d.departmentName=dep?.name || '';
   saveMasterLocal();
   populateDefs();
   renderAll();
@@ -808,6 +866,8 @@ window.toggleDoctor=async id=>{
   const d=doctors.find(x=>x.id===id); if(!d)return;
   d.active=d.active===false?true:false;
   saveMasterLocal(); populateDefs(); renderAll();
+  if($('branch').value===d.departmentId){ updateDoctors(); }
+  if($('branch').value===d.departmentId){ updateDoctors(d.id); }
   if(window.medikentCloud?.enabled){
     try{await window.medikentCloud.saveDoctor(d);}
     catch(err){console.error(err);alert("Doktor durumu değişti ancak Firebase'e gönderilemedi.");}
@@ -878,6 +938,35 @@ async function loadMasterCloud(){
     }
 
     doctors=mergedDoctors;
+
+    // Doktor-bölüm ilişkisini canonical hale getir.
+    // Önce departmentName, sonra eski departmentId üzerinden doğru bölümü bul.
+    for(const d of doctors){
+      let dep=null;
+
+      if(d.departmentName){
+        dep=departments.find(x=>normalizeTr(x.name)===normalizeTr(d.departmentName));
+      }
+
+      if(!dep && d.departmentId){
+        dep=departmentByAny(d.departmentId);
+      }
+
+      // Eski özel kimlik uyumluluğu
+      if(!dep && d.departmentId==='dep-cocuk'){
+        dep=departments.find(x=>x.id==='dep-cocuk-sagligi') ||
+            departments.find(x=>normalizeTr(x.name)===normalizeTr('Çocuk Sağlığı ve Hastalıkları'));
+      }
+
+      if(dep){
+        const changed = d.departmentId!==dep.id || d.departmentName!==dep.name;
+        d.departmentId=dep.id;
+        d.departmentName=dep.name;
+        if(changed && window.medikentCloud?.enabled){
+          await window.medikentCloud.saveDoctor(d);
+        }
+      }
+    }
 
     // Yerelde olup bulutta olmayan doktorları otomatik buluta gönder.
     const cloudDoctorIds=new Set((Array.isArray(cloudDocs)?cloudDocs:[]).map(d=>d.id));
