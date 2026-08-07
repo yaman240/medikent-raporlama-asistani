@@ -128,6 +128,9 @@ function monthOf(date){ return (date||'').slice(0,7); }
 function esc(s=''){ return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
 
 const $=id=>document.getElementById(id);
+let selectedPhotoFiles = [];
+let retainedExistingPhotos = [];
+
 const monthFilter=$('monthFilter');
 const reportMonth=$('reportMonth');
 const defaultMonth='2026-06';
@@ -224,6 +227,49 @@ document.querySelectorAll('.nav').forEach(btn=>btn.addEventListener('click',()=>
 $('branch').addEventListener('change',()=>updateDoctors());
 $('type').addEventListener('change',toggleConditionalFields);
 
+
+function renderSelectedPhotoPreview(){
+  const box=$('photoPreview');
+  if(!box)return;
+  box.innerHTML=selectedPhotoFiles.map((file,i)=>{
+    const url=URL.createObjectURL(file);
+    return `<div class="photo-item">
+      <img src="${url}" alt="Seçilen fotoğraf">
+      <button type="button" onclick="removeSelectedPhoto(${i})">×</button>
+      <div class="photo-meta">${esc(file.name)}</div>
+    </div>`;
+  }).join('');
+}
+
+window.removeSelectedPhoto=i=>{
+  selectedPhotoFiles.splice(i,1);
+  renderSelectedPhotoPreview();
+};
+
+function renderExistingPhotos(){
+  const box=$('existingPhotos');
+  if(!box)return;
+  box.innerHTML=retainedExistingPhotos.map((p,i)=>`
+    <div class="photo-item">
+      <img src="${esc(p.url)}" alt="${esc(p.name||'Faaliyet fotoğrafı')}">
+      <button type="button" onclick="removeExistingPhoto(${i})">×</button>
+      <div class="photo-meta">${esc(p.name||'Fotoğraf')}</div>
+    </div>`).join('');
+}
+
+window.removeExistingPhoto=i=>{
+  retainedExistingPhotos.splice(i,1);
+  renderExistingPhotos();
+};
+
+const photoFilesInput=$('photoFiles');
+if(photoFilesInput){
+  photoFilesInput.addEventListener('change',e=>{
+    selectedPhotoFiles=[...e.target.files];
+    renderSelectedPhotoPreview();
+  });
+}
+
 $('activityForm').addEventListener('submit',async e=>{
   e.preventDefault();
   const data={
@@ -232,7 +278,10 @@ $('activityForm').addEventListener('submit',async e=>{
     branchName:departmentNameById($('branch').value),
     doctor:$('doctor').value,
     doctorName:doctorNameById($('doctor').value),
-    type:$('type').value,platform:$('platform').value.trim(),
+    type:$('type').value,
+    platform:$('platform').value.trim(),
+    socialLink:$('socialLink').value.trim(),
+    photos:[...retainedExistingPhotos],
     views:+$('views').value||0,reach:+$('reach').value||0,likes:+$('likes').value||0,
     engagement:+$('engagement').value||0,participants:+$('participants').value||0,
     note:$('note').value.trim()
@@ -249,6 +298,23 @@ $('activityForm').addEventListener('submit',async e=>{
     ? activities.find(a=>a.id===editingId)
     : activities[activities.length-1];
 
+  if(savedActivity && selectedPhotoFiles.length){
+    if(!window.medikentCloud?.enabled){
+      alert("Fotoğraflar Firebase'e yüklenemedi çünkü bulut bağlantısı aktif değil.");
+    }else{
+      try{
+        const uploaded = await window.medikentCloud.uploadActivityPhotos(savedActivity.id, selectedPhotoFiles);
+        savedActivity.photos = [...(savedActivity.photos||[]), ...uploaded];
+        const idx = activities.findIndex(a=>a.id===savedActivity.id);
+        if(idx>=0) activities[idx]=savedActivity;
+        save();
+      }catch(err){
+        console.error(err);
+        alert("Fotoğraf yüklenemedi: " + (err.message || err));
+      }
+    }
+  }
+
   if(window.medikentCloud?.enabled && savedActivity){
     try{
       await window.medikentCloud.saveActivity(savedActivity);
@@ -264,6 +330,10 @@ $('activityForm').addEventListener('submit',async e=>{
 
 function resetForm(){
   $('activityForm').reset();
+  selectedPhotoFiles=[];
+  retainedExistingPhotos=[];
+  if($('photoPreview')) $('photoPreview').innerHTML='';
+  if($('existingPhotos')) $('existingPhotos').innerHTML='';
   $('editingId').value='';
   $('formTitle').textContent='Yeni Faaliyet';
   $('editBadge').classList.add('hidden');
@@ -340,6 +410,11 @@ window.editActivity=id=>{
   }
   updateDoctors(docValue);
   $('platform').value=a.platform||'';
+  $('socialLink').value=a.socialLink||'';
+  retainedExistingPhotos=Array.isArray(a.photos)?[...a.photos]:[];
+  selectedPhotoFiles=[];
+  renderExistingPhotos();
+  renderSelectedPhotoPreview();
   $('views').value=a.views||0;
   $('reach').value=a.reach||0;
   $('likes').value=a.likes||0;
@@ -385,7 +460,10 @@ function generateReport(){
       <p><b>${esc(a.date)} – ${esc(a.title)}</b><br>
       ${a.branch||a.branchName?esc(a.branchName || departmentNameById(a.branch) || a.branch):''}${a.doctor||a.doctorName?' – '+esc(a.doctorName || doctorNameById(a.doctor) || a.doctor):''}
       ${a.type?'<br><i>'+esc(a.type)+(a.platform?' / '+esc(a.platform):'')+'</i>':''}
-      ${a.note?'<br>'+esc(a.note):''}</p>`).join('') || '<p>Bu ay için kayıt bulunmuyor.</p>'}
+      ${a.socialLink?'<br><span>Bağlantı: '+esc(a.socialLink)+'</span>':''}
+      ${a.note?'<br>'+esc(a.note):''}
+      ${Array.isArray(a.photos)&&a.photos.length?'<div class="report-photo-grid">'+a.photos.map(p=>`<img src="${esc(p.url)}" alt="Faaliyet fotoğrafı">`).join('')+'</div>':''}
+      </p>`).join('') || '<p>Bu ay için kayıt bulunmuyor.</p>'}
   `;
 }
 

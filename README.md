@@ -1,22 +1,37 @@
-# Medikent Raporlama Asistanı v2.5
+# Medikent Raporlama Asistanı v2.6
 
-## Kritik düzeltme
-Tanımlar ekranındaki bölümler artık Firebase yanıtını beklemeden uygulama açılır açılmaz görünür.
+## Yeni özellikler
+- Faaliyet kaydına isteğe bağlı fotoğraf yükleme
+- Birden fazla fotoğraf seçme
+- Fotoğraf önizleme
+- Sosyal medya / haber linki alanı
+- Fotoğrafları Firebase Storage'a yükleme
+- Fotoğraf bağlantılarını Firestore faaliyet kaydında saklama
+- Otomatik raporda faaliyet fotoğraflarını gösterme
 
-Hazır gelen 14 bölüm:
-- Çocuk Sağlığı ve Hastalıkları
-- Çocuk Cerrahisi
-- Kadın Hastalıkları ve Doğum
-- Genel Cerrahi
-- Kulak Burun Boğaz
-- Ortopedi ve Travmatoloji
-- Kalp ve Damar Cerrahisi
-- Kardiyoloji
-- Beyin ve Sinir Cerrahisi
-- Üroloji
-- Cildiye (Dermatoloji)
-- İç Hastalıkları (Dahiliye)
-- Algoloji
-- Plastik, Rekonstrüktif ve Estetik Cerrahi
+## Önemli
+Firebase Storage etkin olmalıdır.
 
-Firebase'de eski veya eksik tanımlar olsa bile bu 14 bölüm yerelde görünür ve eksik olanlar Firebase'e eklenir.
+Firebase Console:
+Build / Storage > Get started
+
+Önerilen başlangıç Storage kuralı:
+
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /activity-photos/{allPaths=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
+
+Bu kural yalnızca oturum açmış kullanıcıların faaliyet fotoğraflarına erişmesine izin verir.
+
+## GitHub'a yüklenecek dosyalar
+- index.html
+- app.js
+- style.css
+- firebase-app.js
+- README.md

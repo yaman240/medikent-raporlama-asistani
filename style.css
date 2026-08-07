@@ -71,3 +71,14 @@ th,td{padding:10px;border-bottom:1px solid #e5e7eb;text-align:left;font-size:13p
   .edit-row{grid-template-columns:1fr}
   .edit-row .save-row,.edit-row .danger-row{width:100%}
 }
+
+.photo-box{border:1px dashed #cbd5e1;border-radius:12px;padding:14px;margin:14px 0;background:#f8fafc}
+.photo-box h3{margin:0 0 10px;font-size:15px}
+.optional{font-size:12px;font-weight:400;color:#64748b}
+.photo-preview{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.photo-item{position:relative;width:120px}
+.photo-item img{width:120px;height:90px;object-fit:cover;border-radius:10px;border:1px solid #dbe3ec;background:#fff}
+.photo-item button{position:absolute;top:5px;right:5px;padding:3px 6px;border-radius:999px;background:#b42318;font-size:11px}
+.photo-meta{font-size:11px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:4px}
+.report-photo-grid{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}
+.report-photo-grid img{width:180px;height:130px;object-fit:cover;border-radius:8px;border:1px solid #ddd}

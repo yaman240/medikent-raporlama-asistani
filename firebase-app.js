@@ -14,6 +14,12 @@ import {
   deleteDoc,
   doc
 } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+import {
+  getStorage,
+  ref as storageRef,
+  uploadBytes,
+  getDownloadURL
+} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-storage.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDVzPiLxGhAXruBvI1w17rIDuIP_ciz8wI",
@@ -27,6 +33,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+const storage = getStorage(app);
 const provider = new GoogleAuthProvider();
 
 const loginOverlay = document.getElementById("loginOverlay");
@@ -46,7 +53,8 @@ window.medikentCloud = {
   async loadDepartments(){ return []; },
   async saveDepartment(){},
   async loadDoctors(){ return []; },
-  async saveDoctor(){}
+  async saveDoctor(){},
+  async uploadActivityPhotos(){ return []; }
 };
 
 googleLoginBtn.addEventListener("click", async () => {
@@ -136,6 +144,24 @@ onAuthStateChanged(auth, async (user) => {
       updatedAt: new Date().toISOString(),
       updatedByUid: user.uid
     }, { merge: true });
+  };
+
+  window.medikentCloud.uploadActivityPhotos = async (activityId, files) => {
+    const results = [];
+    for(const file of files){
+      const safeName = String(file.name || "photo")
+        .replace(/[^a-zA-Z0-9._-]/g, "_");
+      const path = `activity-photos/${activityId}/${Date.now()}-${Math.random().toString(36).slice(2)}-${safeName}`;
+      const ref = storageRef(storage, path);
+      await uploadBytes(ref, file, { contentType: file.type || "image/jpeg" });
+      const url = await getDownloadURL(ref);
+      results.push({
+        name: file.name || "Fotoğraf",
+        url,
+        path
+      });
+    }
+    return results;
   };
 
   window.dispatchEvent(new CustomEvent("medikent-cloud-ready"));
