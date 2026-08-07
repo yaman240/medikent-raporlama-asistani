@@ -143,8 +143,11 @@ function renderMasterLists(){
     depList.innerHTML=departments.slice().sort((a,b)=>a.name.localeCompare(b.name,'tr')).map(d=>{
       const linked=doctors.filter(x=>x.departmentId===d.id).length;
       return `<div class="manage-item">
-        <div><strong>${esc(d.name)}</strong><div class="meta">${linked} doktor bağlı</div></div>
-        <div class="manage-actions"><button class="small-btn secondary" onclick="renameDepartment('${d.id}')">Düzenle</button></div>
+        <div class="edit-row" style="grid-template-columns:1fr auto">
+          <input id="dep-name-${d.id}" value="${esc(d.name)}" aria-label="Bölüm adı">
+          <button class="small-btn save-row" onclick="saveDepartmentEdit('${d.id}')">Kaydet</button>
+        </div>
+        <div class="meta">${linked} doktor bağlı</div>
       </div>`;
     }).join('') || '<span class="muted">Henüz bölüm tanımlanmadı.</span>';
   }
@@ -153,15 +156,15 @@ function renderMasterLists(){
   if(docList){
     docList.innerHTML=doctors.slice().sort((a,b)=>a.name.localeCompare(b.name,'tr')).map(d=>`
       <div class="manage-item ${d.active===false?'passive':''}">
-        <div>
-          <strong>${esc(d.name)}</strong>
-          <div class="meta">${esc(departmentNameById(d.departmentId))} •
-            <span class="${d.active===false?'status-passive':'status-active'}">${d.active===false?'Pasif':'Aktif'}</span>
-          </div>
-        </div>
-        <div class="manage-actions">
-          <button class="small-btn secondary" onclick="editDoctor('${d.id}')">Düzenle</button>
-          <button class="small-btn" onclick="toggleDoctor('${d.id}')">${d.active===false?'Aktif Yap':'Pasif Yap'}</button>
+        <div class="edit-row">
+          <input id="doc-name-${d.id}" value="${esc(d.name)}" aria-label="Doktor adı">
+          <select id="doc-dep-${d.id}" aria-label="Doktor bölümü">
+            ${departments.slice().sort((a,b)=>a.name.localeCompare(b.name,'tr')).map(dep=>
+              `<option value="${esc(dep.id)}" ${dep.id===d.departmentId?'selected':''}>${esc(dep.name)}</option>`
+            ).join('')}
+          </select>
+          <button class="small-btn save-row" onclick="saveDoctorEdit('${d.id}')">Kaydet</button>
+          <button class="small-btn ${d.active===false?'':'danger-row'}" onclick="toggleDoctor('${d.id}')">${d.active===false?'Aktif Yap':'Pasif Yap'}</button>
         </div>
       </div>`).join('') || '<span class="muted">Henüz doktor tanımlanmadı.</span>';
   }
@@ -432,28 +435,45 @@ if(doctorForm){
   });
 }
 
-window.renameDepartment=async id=>{
+window.saveDepartmentEdit=async id=>{
   const dep=departments.find(d=>d.id===id); if(!dep)return;
-  const name=prompt('Bölüm adını düzenle:',dep.name);
-  if(!name||!name.trim())return;
-  dep.name=name.trim();
-  saveMasterLocal(); populateDefs(); renderAll();
-  if(window.medikentCloud?.enabled){
-    try{await window.medikentCloud.saveDepartment(dep);}
-    catch(err){console.error(err);alert("Bölüm güncellendi ancak Firebase'e gönderilemedi.");}
+  const input=document.getElementById(`dep-name-${id}`);
+  const name=(input?.value||'').trim();
+  if(!name){ alert('Bölüm adı boş olamaz.'); return; }
+  if(departments.some(d=>d.id!==id && d.name.toLocaleLowerCase('tr')===name.toLocaleLowerCase('tr'))){
+    alert('Bu bölüm adı zaten mevcut.');
+    return;
   }
+  dep.name=name;
+  saveMasterLocal();
+  populateDefs();
+  renderAll();
+  if(window.medikentCloud?.enabled){
+    try{ await window.medikentCloud.saveDepartment(dep); }
+    catch(err){ console.error(err); alert("Bölüm güncellendi ancak Firebase'e gönderilemedi."); }
+  }
+  alert('Bölüm güncellendi.');
 };
 
-window.editDoctor=async id=>{
+window.saveDoctorEdit=async id=>{
   const d=doctors.find(x=>x.id===id); if(!d)return;
-  const name=prompt('Doktor adını düzenle:',d.name);
-  if(!name||!name.trim())return;
-  d.name=name.trim();
-  saveMasterLocal(); populateDefs(); renderAll();
-  if(window.medikentCloud?.enabled){
-    try{await window.medikentCloud.saveDoctor(d);}
-    catch(err){console.error(err);alert("Doktor güncellendi ancak Firebase'e gönderilemedi.");}
+  const name=(document.getElementById(`doc-name-${id}`)?.value||'').trim();
+  const departmentId=document.getElementById(`doc-dep-${id}`)?.value||'';
+  if(!name || !departmentId){ alert('Doktor adı ve bölüm zorunludur.'); return; }
+  if(doctors.some(x=>x.id!==id && x.name.toLocaleLowerCase('tr')===name.toLocaleLowerCase('tr'))){
+    alert('Bu doktor zaten mevcut.');
+    return;
   }
+  d.name=name;
+  d.departmentId=departmentId;
+  saveMasterLocal();
+  populateDefs();
+  renderAll();
+  if(window.medikentCloud?.enabled){
+    try{ await window.medikentCloud.saveDoctor(d); }
+    catch(err){ console.error(err); alert("Doktor güncellendi ancak Firebase'e gönderilemedi."); }
+  }
+  alert('Doktor güncellendi.');
 };
 
 window.toggleDoctor=async id=>{
