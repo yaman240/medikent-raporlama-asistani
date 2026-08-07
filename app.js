@@ -95,7 +95,7 @@ function deterministicDoctorId(name){
 }
 
 function ensureOfficialDoctorsLocal(){
-  let changed=false;
+  const added=[];
 
   for(const seed of OFFICIAL_SEED_DOCTORS){
     const dep=departments.find(d=>normalizeTr(d.name)===normalizeTr(seed.departmentName));
@@ -104,18 +104,21 @@ function ensureOfficialDoctorsLocal(){
     const exists=doctors.some(d=>normalizeTr(d.name)===normalizeTr(seed.name));
     if(exists) continue;
 
-    doctors.push({
+    const doctor={
       id:deterministicDoctorId(seed.name),
       name:seed.name,
       departmentId:dep.id,
       departmentName:dep.name,
       active:true,
       source:'Medikent resmi hekim listesi'
-    });
-    changed=true;
+    };
+
+    doctors.push(doctor);
+    added.push(doctor);
   }
 
-  if(changed) saveMasterLocal();
+  if(added.length) saveMasterLocal();
+  return added;
 }
 
 
@@ -920,6 +923,93 @@ $('importFile').addEventListener('change',async e=>{
 });
 
 
+
+
+const seedDoctorsBtn=$('seedDoctorsBtn');
+if(seedDoctorsBtn){
+  seedDoctorsBtn.addEventListener('click',async ()=>{
+    seedDoctorsBtn.disabled=true;
+    const status=$('seedDoctorsStatus');
+    if(status) status.textContent='Hazır hekim kadrosu yükleniyor...';
+
+    try{
+      // Bölümleri önce kesin olarak hazırla.
+      ensureRequiredDepartmentsLocal();
+
+      // Firebase'den güncel bölüm kayıtlarını da al, isim bazında canonical eşle.
+      if(window.medikentCloud?.enabled){
+        try{
+          const cloudDeps=await window.medikentCloud.loadDepartments();
+          if(Array.isArray(cloudDeps)){
+            for(const dep of cloudDeps){
+              if(!departments.some(d=>normalizeTr(d.name)===normalizeTr(dep.name))){
+                departments.push(dep);
+              }
+            }
+          }
+        }catch(err){
+          console.warn('Bölüm listesi buluttan alınamadı, yerel bölüm listesi kullanılacak.',err);
+        }
+      }
+
+      ensureRequiredDepartmentsLocal();
+
+      // Mevcut doktorları Firebase'den al ve isim bazında birleştir.
+      if(window.medikentCloud?.enabled){
+        try{
+          const cloudDocs=await window.medikentCloud.loadDoctors();
+          if(Array.isArray(cloudDocs)){
+            for(const d of cloudDocs){
+              if(!doctors.some(x=>normalizeTr(x.name)===normalizeTr(d.name))){
+                doctors.push(d);
+              }
+            }
+          }
+        }catch(err){
+          console.warn('Doktor listesi buluttan alınamadı, yerel liste kullanılacak.',err);
+        }
+      }
+
+      // Hazır kadroyu ekle.
+      const added=ensureOfficialDoctorsLocal();
+
+      // Tüm seed doktorlarını doğru canonical bölüme bağla.
+      for(const seed of OFFICIAL_SEED_DOCTORS){
+        const dep=departments.find(d=>normalizeTr(d.name)===normalizeTr(seed.departmentName));
+        const doc=doctors.find(d=>normalizeTr(d.name)===normalizeTr(seed.name));
+        if(!dep || !doc) continue;
+
+        doc.departmentId=dep.id;
+        doc.departmentName=dep.name;
+        if(doc.active===undefined) doc.active=true;
+
+        if(window.medikentCloud?.enabled){
+          await window.medikentCloud.saveDoctor(doc);
+        }
+      }
+
+      saveMasterLocal();
+      populateDefs();
+      renderMasterLists();
+      renderAll();
+
+      const totalSeed=OFFICIAL_SEED_DOCTORS.filter(seed=>
+        doctors.some(d=>normalizeTr(d.name)===normalizeTr(seed.name))
+      ).length;
+
+      if(status){
+        status.textContent=`Hazır hekim kadrosu tamamlandı: ${totalSeed} doktor sistemde.`;
+      }
+      alert(`Hekim kadrosu yüklendi. Sistemde ${totalSeed} hazır doktor var.`);
+    }catch(err){
+      console.error(err);
+      if(status) status.textContent='Hekim kadrosu yüklenemedi.';
+      alert('Hekim kadrosu yüklenemedi: '+(err.message||err));
+    }finally{
+      seedDoctorsBtn.disabled=false;
+    }
+  });
+}
 
 const departmentForm=$('departmentForm');
 if(departmentForm){

@@ -18,7 +18,7 @@
         <span id="userName"></span>
         <button id="logoutBtn" class="secondary hidden">Çıkış</button>
       </div>
-      <span class="version">v3.2</span>
+      <span class="version">v3.3</span>
       <button id="printBtn" class="secondary">Yazdır</button>
     </div>
   </header>
@@ -186,7 +186,11 @@
           </div>
 
           <div class="panel">
-            <h2>Doktorlar</h2>
+            <div class="panel-head">
+              <h2>Doktorlar</h2>
+              <button type="button" id="seedDoctorsBtn">Hazır Hekim Kadrosunu Yükle</button>
+            </div>
+            <p id="seedDoctorsStatus" class="muted"></p>
             <form id="doctorForm">
               <div class="grid">
                 <label>Bölüm

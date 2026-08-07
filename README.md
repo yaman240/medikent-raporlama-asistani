@@ -1,28 +1,20 @@
-# Medikent Raporlama Asistanı v3.2
+# Medikent Raporlama Asistanı v3.3
 
-## İlk hazır doktor kadrosu
+## Hazır Hekim Kadrosu – Kesin Yükleme
 
-Medikent Hastanesi resmi Hekimlerimiz sayfasında doğrulanan hekimler başlangıçta sisteme eklenir.
+Tanımlar > Doktorlar ekranına:
+**Hazır Hekim Kadrosunu Yükle**
 
-Hazır gelen bölümler ve hekimler:
-- Çocuk Sağlığı ve Hastalıkları
-- Çocuk Cerrahisi
-- Kadın Hastalıkları ve Doğum
-- Genel Cerrahi
-- Kulak Burun Boğaz
-- Ortopedi ve Travmatoloji
-- Kalp ve Damar Cerrahisi
-- Kardiyoloji
-- Beyin ve Sinir Cerrahisi
-- Üroloji
-- Cildiye (Dermatoloji)
-- İç Hastalıkları (Dahiliye)
+butonu eklendi.
 
-Algoloji ve Plastik Cerrahi bölümleri korunur fakat resmi hekim sayfasında bu sürüm hazırlanırken doğrulanmış hekim bulunmadığı için başlangıç doktoru eklenmez.
+Butona basıldığında:
+- Hazır bölümler garanti edilir.
+- Firebase'deki mevcut doktorlar okunur.
+- 29 hazır doktor isim bazında kontrol edilir.
+- Eksik olanlar eklenir.
+- Her doktor doğru bölüme bağlanır.
+- Firebase'e kaydedilir.
+- Aynı isimli doktor ikinci kez oluşturulmaz.
+- Liste anında yenilenir.
 
-## Davranış
-- Mevcut doktor kayıtları silinmez.
-- Aynı isimli doktor tekrar eklenmez.
-- Eksik resmi doktorlar otomatik tamamlanır.
-- Firebase'e de otomatik gönderilir.
-- Sonradan doktor aktif/pasif yönetimi yapılabilir.
+Bu sürüm otomatik ilk yüklemenin tarayıcı/Firebase zamanlamasına bağlı kalmasını ortadan kaldırır.
