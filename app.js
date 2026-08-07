@@ -134,6 +134,91 @@ const $=id=>document.getElementById(id);
 let selectedPhotoFiles = [];
 let retainedExistingPhotos = [];
 
+const PHOTO_DB_NAME='medikent-raporlama-photos';
+const PHOTO_STORE='activityPhotos';
+
+function openPhotoDb(){
+  return new Promise((resolve,reject)=>{
+    const req=indexedDB.open(PHOTO_DB_NAME,1);
+    req.onupgradeneeded=()=>{
+      const db=req.result;
+      if(!db.objectStoreNames.contains(PHOTO_STORE)){
+        db.createObjectStore(PHOTO_STORE,{keyPath:'activityId'});
+      }
+    };
+    req.onsuccess=()=>resolve(req.result);
+    req.onerror=()=>reject(req.error);
+  });
+}
+
+async function getLocalPhotos(activityId){
+  if(!activityId) return [];
+  const db=await openPhotoDb();
+  return new Promise((resolve,reject)=>{
+    const tx=db.transaction(PHOTO_STORE,'readonly');
+    const store=tx.objectStore(PHOTO_STORE);
+    const req=store.get(activityId);
+    req.onsuccess=()=>resolve(req.result?.photos || []);
+    req.onerror=()=>reject(req.error);
+  });
+}
+
+async function setLocalPhotos(activityId,photos){
+  const db=await openPhotoDb();
+  return new Promise((resolve,reject)=>{
+    const tx=db.transaction(PHOTO_STORE,'readwrite');
+    tx.objectStore(PHOTO_STORE).put({activityId,photos});
+    tx.oncomplete=()=>resolve();
+    tx.onerror=()=>reject(tx.error);
+  });
+}
+
+function fileToDataUrl(file){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=()=>resolve(reader.result);
+    reader.onerror=reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function compressImageFile(file){
+  const raw=await fileToDataUrl(file);
+  const img=await new Promise((resolve,reject)=>{
+    const i=new Image();
+    i.onload=()=>resolve(i);
+    i.onerror=reject;
+    i.src=raw;
+  });
+
+  const MAX=1600;
+  let w=img.width, h=img.height;
+  if(w>MAX || h>MAX){
+    const ratio=Math.min(MAX/w,MAX/h);
+    w=Math.round(w*ratio);
+    h=Math.round(h*ratio);
+  }
+
+  const canvas=document.createElement('canvas');
+  canvas.width=w; canvas.height=h;
+  const ctx=canvas.getContext('2d');
+  ctx.drawImage(img,0,0,w,h);
+
+  const dataUrl=canvas.toDataURL('image/jpeg',0.82);
+  return {
+    name:(file.name||'fotoğraf').replace(/\.[^.]+$/,'.jpg'),
+    dataUrl
+  };
+}
+
+async function prepareSelectedPhotos(){
+  const out=[];
+  for(const file of selectedPhotoFiles){
+    out.push(await compressImageFile(file));
+  }
+  return out;
+}
+
 const monthFilter=$('monthFilter');
 const reportMonth=$('reportMonth');
 function currentMonthValue(){
@@ -308,7 +393,7 @@ function renderExistingPhotos(){
   if(!box)return;
   box.innerHTML=retainedExistingPhotos.map((p,i)=>`
     <div class="photo-item">
-      <img src="${esc(p.url)}" alt="${esc(p.name||'Faaliyet fotoğrafı')}">
+      <img src="${esc(p.dataUrl || p.url || '')}" alt="${esc(p.name||'Faaliyet fotoğrafı')}">
       <button type="button" onclick="removeExistingPhoto(${i})">×</button>
       <div class="photo-meta">${esc(p.name||'Fotoğraf')}</div>
     </div>`).join('');
@@ -334,6 +419,20 @@ $('activityForm').addEventListener('submit',async e=>{
   const activityId=editingId || crypto.randomUUID();
   const existing=editingId ? activities.find(a=>a.id===editingId) : null;
 
+  let localPhotos=[...retainedExistingPhotos];
+
+  try{
+    if(selectedPhotoFiles.length){
+      const prepared=await prepareSelectedPhotos();
+      localPhotos=[...localPhotos,...prepared];
+    }
+    await setLocalPhotos(activityId,localPhotos);
+  }catch(err){
+    console.error(err);
+    alert("Fotoğraflar bu cihazda saklanamadı: "+(err.message||err));
+    return;
+  }
+
   const data={
     id:activityId,
     date:$('date').value,
@@ -346,7 +445,7 @@ $('activityForm').addEventListener('submit',async e=>{
     type:$('type').value,
     platform:$('platform').value.trim(),
     socialLink:$('socialLink').value.trim(),
-    photos:[...retainedExistingPhotos],
+    localPhotoCount:localPhotos.length,
     views:+$('views').value||0,
     reach:+$('reach').value||0,
     likes:+$('likes').value||0,
@@ -355,38 +454,14 @@ $('activityForm').addEventListener('submit',async e=>{
     note:$('note').value.trim()
   };
 
-  let draft={...(existing||{}),...data};
+  const draft={...(existing||{}),...data};
 
-  // Fotoğraf seçildiyse, yükleme başarılı olmadan kaydı tamamlanmış sayma.
-  if(selectedPhotoFiles.length){
-    if(!window.medikentCloud?.enabled){
-      alert("Fotoğraf seçildi ancak Firebase bağlantısı aktif değil. Kayıt tamamlanmadı.");
-      return;
-    }
-
-    try{
-      const uploaded=await window.medikentCloud.uploadActivityPhotos(activityId,selectedPhotoFiles);
-      draft.photos=[...(draft.photos||[]),...uploaded];
-    }catch(err){
-      console.error(err);
-      const code=err?.code||'';
-      let msg="Fotoğraf Firebase Storage'a yüklenemedi.";
-      if(code.includes('unauthorized')) msg+=" Storage izinlerini kontrol edin.";
-      else if(code.includes('bucket-not-found') || code.includes('object-not-found')) msg+=" Firebase Storage henüz etkin olmayabilir.";
-      else msg+=" "+(err.message||err);
-      msg+=" Fotoğraf yüklenmediği için kayıt tamamlanmadı.";
-      alert(msg);
-      return;
-    }
-  }
-
-  // Bulut aktifse önce Firestore'a yaz; başarısızsa kullanıcıya başarı mesajı verme.
   if(window.medikentCloud?.enabled){
     try{
       await window.medikentCloud.saveActivity(draft);
     }catch(err){
       console.error(err);
-      alert("Faaliyet Firebase'e kaydedilemedi. Kayıt tamamlanmadı: "+(err.message||err));
+      alert("Faaliyet Firebase'e kaydedilemedi: "+(err.message||err));
       return;
     }
   }
@@ -397,7 +472,6 @@ $('activityForm').addEventListener('submit',async e=>{
 
   save();
 
-  // Kaydedilen faaliyetin ayını doğrudan rapor ayı yap.
   const savedMonth=monthOf(draft.date);
   if(savedMonth){
     monthFilter.value=savedMonth;
@@ -462,7 +536,7 @@ function renderRecords(){
     <tr>
       <td>${esc(a.date)}</td><td>${esc(a.title)}</td><td>${esc(a.type)}</td><td>${esc(a.branchName || departmentNameById(a.branch) || a.branch)}</td><td>${esc(a.doctorName || doctorNameById(a.doctor) || a.doctor)}</td>
       <td>${a.views?fmt(a.views)+' görüntülenme':a.participants?fmt(a.participants)+' katılımcı':esc(a.platform||'-')}
-      ${Array.isArray(a.photos)&&a.photos.length?`<br><span class="meta">📷 ${a.photos.length} fotoğraf</span>`:''}</td>
+      ${(+a.localPhotoCount||0)?`<br><span class="meta">📷 ${a.localPhotoCount} fotoğraf (bu cihaz)</span>`:''}</td>
       <td>
         <button class="edit-btn" onclick="editActivity('${a.id}')">Düzenle</button>
         <button class="delete-btn" onclick="removeActivity('${a.id}')">Sil</button>
@@ -496,9 +570,12 @@ window.editActivity=id=>{
   updateDoctors(docValue);
   $('platform').value=a.platform||'';
   $('socialLink').value=a.socialLink||'';
-  retainedExistingPhotos=Array.isArray(a.photos)?[...a.photos]:[];
   selectedPhotoFiles=[];
-  renderExistingPhotos();
+  retainedExistingPhotos=[];
+  getLocalPhotos(a.id).then(photos=>{
+    retainedExistingPhotos=photos;
+    renderExistingPhotos();
+  }).catch(console.error);
   renderSelectedPhotoPreview();
   $('views').value=a.views||0;
   $('reach').value=a.reach||0;
@@ -574,7 +651,7 @@ function autoClosingText(rows, monthLabel, topicLabel){
   return text;
 }
 
-function generateReport(){
+async function generateReport(){
   const m=$('reportMonth').value;
   const rows=filteredReportRows();
   const [y,mo]=m.split('-');
@@ -588,7 +665,8 @@ function generateReport(){
   const closingManual=($('reportClosingText').value||'').trim();
   const closing=closingManual || autoClosingText(rows, monthLabel, inferredTopic);
 
-  const activityHtml = rows.map(a=>{
+  const activityBlocks=[];
+  for(const a of rows){
     const stats=[];
     if(+a.views) stats.push(`<li>Görüntülenme: <b>${fmt(a.views)}</b></li>`);
     if(+a.reach) stats.push(`<li>Erişim: <b>${fmt(a.reach)}</b></li>`);
@@ -596,8 +674,10 @@ function generateReport(){
     if(+a.engagement) stats.push(`<li>Etkileşim: <b>${fmt(a.engagement)}</b></li>`);
     if(+a.participants) stats.push(`<li>Katılımcı: <b>${fmt(a.participants)}</b></li>`);
 
-    const photos=Array.isArray(a.photos)?a.photos:[];
-    return `
+    let photos=[];
+    try{ photos=await getLocalPhotos(a.id); }catch(err){ console.warn(err); }
+
+    activityBlocks.push(`
       <div class="report-section">
         <div class="report-date">${esc(trDate(a.date))}</div>
         <div><b>${esc(a.title||'')}</b></div>
@@ -609,11 +689,11 @@ function generateReport(){
         ${stats.length?`<ul class="report-stats">${stats.join('')}</ul>`:''}
         ${a.note?`<p>${esc(a.note)}</p>`:''}
         ${a.socialLink?`<div class="report-link">Bağlantı: ${esc(a.socialLink)}</div>`:''}
-        ${photos.length?`<div class="report-photo-grid">${photos.map(p=>`<img crossorigin="anonymous" src="${esc(p.url)}" alt="Faaliyet fotoğrafı">`).join('')}</div>`:''}
+        ${photos.length?`<div class="report-photo-grid">${photos.map(p=>`<img src="${p.dataUrl}" alt="Faaliyet fotoğrafı">`).join('')}</div>`:''}
       </div>
       <hr class="report-divider">
-    `;
-  }).join('');
+    `);
+  }
 
   $('reportOutput').innerHTML=`
     <div class="report-header">
@@ -621,7 +701,7 @@ function generateReport(){
       <h2>${esc(headingTopic)} ${esc(monthNames[+mo].toLocaleUpperCase('tr'))} AYI ÇALIŞMALARI</h2>
     </div>
 
-    ${activityHtml || '<p>Seçilen ay ve konu için faaliyet bulunamadı.</p>'}
+    ${activityBlocks.join('') || '<p>Seçilen ay ve konu için faaliyet bulunamadı.</p>'}
 
     ${rows.length?`
       <div class="report-summary">
@@ -641,7 +721,6 @@ function generateReport(){
       </div>`:''}
   `;
 }
-
 async function reportHtmlWithEmbeddedImages(){
   const clone=$('reportOutput').cloneNode(true);
   const imgs=[...clone.querySelectorAll('img')];
@@ -666,7 +745,7 @@ async function reportHtmlWithEmbeddedImages(){
 }
 
 async function downloadWordReport(){
-  generateReport();
+  await generateReport();
   const body=await reportHtmlWithEmbeddedImages();
   const css=`
     body{font-family:Arial,sans-serif;color:#111}
@@ -692,7 +771,7 @@ async function downloadWordReport(){
 }
 
 async function downloadPdfReport(){
-  generateReport();
+  await generateReport();
   const element=$('reportOutput');
   const opt={
     margin:[10,10,10,10],
@@ -706,12 +785,12 @@ async function downloadPdfReport(){
 }
 
 $('refreshStats').onclick=renderStats;
-$('generateReport').onclick=generateReport;
+$('generateReport').onclick=()=>generateReport();
 $('downloadWordBtn').onclick=downloadWordReport;
 $('downloadPdfBtn').onclick=downloadPdfReport;
 $('searchInput').addEventListener('input',renderRecords);
-$('reportTopicFilter').addEventListener('input',generateReport);
-$('reportMonth').addEventListener('change',generateReport);
+$('reportTopicFilter').addEventListener('input',()=>generateReport());
+$('reportMonth').addEventListener('change',()=>generateReport());
 $('printBtn').onclick=()=>window.print();
 
 $('exportBtn').onclick=()=>{
@@ -1025,7 +1104,7 @@ if(cloudUploadBtn){
   };
 }
 
-function renderAll(){renderStats();renderRecords();generateReport();}
+function renderAll(){renderStats();renderRecords();generateReport().catch(console.error);}
 ensureRequiredDepartmentsLocal();
 populateDefs();
 toggleConditionalFields();

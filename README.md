@@ -1,17 +1,27 @@
-# Medikent Raporlama Asistanı v2.9
+# Medikent Raporlama Asistanı v3.0
 
-## Doktor / bölüm eşleşmesi kalıcı düzeltme
+## Ücretsiz fotoğraf sistemi
 
-Bu sürüm doktorların Tanımlar ekranında görünmesine rağmen Faaliyet ekranına gelmemesi sorununu düzeltir.
+Firebase Storage kaldırıldı.
 
-### Değişiklikler
-- Doktor artık hem departmentId hem departmentName ile saklanır.
-- Faaliyet ekranındaki doktor filtresi yalnızca ID'ye bağlı değildir.
-- Eski Firebase bölüm kimlikleri bölüm adı üzerinden otomatik eşleştirilir.
-- Eski doktor kayıtları açılışta canonical bölüm ID'sine otomatik taşınır.
-- Bölüm seçildiğinde doktor listesi anında yeniden oluşturulur.
-- Yeni doktor kaydedildiğinde faaliyet ekranındaki liste anında yenilenir.
-- Aktif/Pasif değişikliği anında faaliyet ekranına yansır.
-- Bölümde aktif doktor yoksa açık uyarı seçeneği görünür.
+Faaliyet fotoğrafları:
+- Tarayıcının IndexedDB alanında saklanır.
+- Firebase'e yüklenmez.
+- Ücret gerektirmez.
+- PDF ve Word raporuna fotoğrafı yüklediğiniz cihazda otomatik eklenir.
+- Fotoğraf olmadan faaliyet kaydı yapılabilir.
 
-Bu sürüm özellikle eski Firebase kayıtları ile yeni hazır bölüm kimliklerinin çakışmasını çözmek için hazırlanmıştır.
+## Önemli sınırlama
+Fotoğraflar cihazlar arasında senkron olmaz.
+
+Örnek:
+- Fotoğrafı iş bilgisayarından yüklediyseniz fotoğraflı raporu iş bilgisayarından alın.
+- Telefonda aynı faaliyet metni görünür, ancak iş bilgisayarında saklanan fotoğraf telefonda görünmez.
+
+Bölüm, doktor, faaliyet ve istatistik verileri Firebase Firestore'da ortak kalmaya devam eder.
+
+## Fotoğraf optimizasyonu
+Fotoğraflar kaydedilmeden önce:
+- en fazla 1600 px boyuta küçültülür,
+- JPEG olarak sıkıştırılır,
+- tarayıcının IndexedDB alanına kaydedilir.
