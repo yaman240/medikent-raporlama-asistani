@@ -24,6 +24,101 @@ const REQUIRED_DEPARTMENTS = [
   {id:'dep-plastik', name:'Plastik, Rekonstrüktif ve Estetik Cerrahi'}
 ];
 
+const OFFICIAL_SEED_DOCTORS = [
+  // Çocuk Sağlığı ve Hastalıkları
+  {name:'Uzm. Dr. Metin TAN', departmentName:'Çocuk Sağlığı ve Hastalıkları'},
+  {name:'Uzm. Dr. Aydın VAROL', departmentName:'Çocuk Sağlığı ve Hastalıkları'},
+  {name:'Uzm. Dr. Gökhan GÖZÜN', departmentName:'Çocuk Sağlığı ve Hastalıkları'},
+
+  // Çocuk Cerrahisi
+  {name:'Op. Dr. Mehmet ÇAKMAK', departmentName:'Çocuk Cerrahisi'},
+
+  // Kadın Hastalıkları ve Doğum
+  {name:'Prof. Dr. Hasan KAFALI', departmentName:'Kadın Hastalıkları ve Doğum'},
+  {name:'Op. Dr. Argun TUĞRAN', departmentName:'Kadın Hastalıkları ve Doğum'},
+  {name:'Op. Dr. Sevgin MERT', departmentName:'Kadın Hastalıkları ve Doğum'},
+  {name:'Uzm. Dr. Gökçem Büşra İNANÇ KARAMAN', departmentName:'Kadın Hastalıkları ve Doğum'},
+  {name:'Dr. Mustafa YILDIZ', departmentName:'Kadın Hastalıkları ve Doğum'},
+
+  // Genel Cerrahi
+  {name:'Op. Dr. Ferhat GEGA', departmentName:'Genel Cerrahi'},
+  {name:'Op. Dr. İbrahim KARAMANOĞLU', departmentName:'Genel Cerrahi'},
+  {name:'Op. Dr. Mustafa TERCAN', departmentName:'Genel Cerrahi'},
+
+  // Kulak Burun Boğaz
+  {name:'Prof. Dr. M. Kemal ADALI', departmentName:'Kulak Burun Boğaz'},
+  {name:'Op. Dr. İlhan ALTEKİN', departmentName:'Kulak Burun Boğaz'},
+  {name:'Dr. Celal KALKIŞIM', departmentName:'Kulak Burun Boğaz'},
+
+  // Ortopedi ve Travmatoloji
+  {name:'Op. Dr. Teoman DURUKAN', departmentName:'Ortopedi ve Travmatoloji'},
+  {name:'Op. Dr. Zafer GÜNEŞ', departmentName:'Ortopedi ve Travmatoloji'},
+  {name:'Op. Dr. Mahmut Sami OFLAZ', departmentName:'Ortopedi ve Travmatoloji'},
+
+  // Kalp ve Damar Cerrahisi
+  {name:'Prof. Dr. Turan EGE', departmentName:'Kalp ve Damar Cerrahisi'},
+  {name:'Op. Dr. Ahmet ŞAMİÖZEN', departmentName:'Kalp ve Damar Cerrahisi'},
+
+  // Kardiyoloji
+  {name:'Uzm. Dr. Haydar Başar CENGİZ', departmentName:'Kardiyoloji'},
+  {name:'Uzm. Dr. Barış AYGÜÇ', departmentName:'Kardiyoloji'},
+
+  // Beyin ve Sinir Cerrahisi
+  {name:'Op. Dr. Bahadır ALKAN', departmentName:'Beyin ve Sinir Cerrahisi'},
+
+  // Üroloji
+  {name:'Prof. Dr. İrfan H. ATAKAN', departmentName:'Üroloji'},
+  {name:'Op. Dr. H. Korhan ALTAN', departmentName:'Üroloji'},
+
+  // Cildiye
+  {name:'Uzm. Dr. Boratay Erin DEMİREL', departmentName:'Cildiye (Dermatoloji)'},
+
+  // İç Hastalıkları
+  {name:'Uzm. Dr. Ferdanes MUTLU', departmentName:'İç Hastalıkları (Dahiliye)'},
+  {name:'Uzm. Dr. Nehir Özlem PEHLİVAN', departmentName:'İç Hastalıkları (Dahiliye)'},
+  {name:'Uzm. Dr. Selçuk ÇUKUROVA', departmentName:'İç Hastalıkları (Dahiliye)'}
+];
+
+function deterministicDoctorId(name){
+  return 'doc-' + String(name)
+    .toLocaleLowerCase('tr')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g,'')
+    .replace(/ı/g,'i')
+    .replace(/ğ/g,'g')
+    .replace(/ü/g,'u')
+    .replace(/ş/g,'s')
+    .replace(/ö/g,'o')
+    .replace(/ç/g,'c')
+    .replace(/[^a-z0-9]+/g,'-')
+    .replace(/^-|-$/g,'');
+}
+
+function ensureOfficialDoctorsLocal(){
+  let changed=false;
+
+  for(const seed of OFFICIAL_SEED_DOCTORS){
+    const dep=departments.find(d=>normalizeTr(d.name)===normalizeTr(seed.departmentName));
+    if(!dep) continue;
+
+    const exists=doctors.some(d=>normalizeTr(d.name)===normalizeTr(seed.name));
+    if(exists) continue;
+
+    doctors.push({
+      id:deterministicDoctorId(seed.name),
+      name:seed.name,
+      departmentId:dep.id,
+      departmentName:dep.name,
+      active:true,
+      source:'Medikent resmi hekim listesi'
+    });
+    changed=true;
+  }
+
+  if(changed) saveMasterLocal();
+}
+
+
 let departments = JSON.parse(localStorage.getItem('medikent_departments_v21') || 'null') || [];
 
 function ensureRequiredDepartmentsLocal(){
@@ -44,7 +139,7 @@ function ensureRequiredDepartmentsLocal(){
 ensureRequiredDepartmentsLocal();
 
 let doctors = JSON.parse(localStorage.getItem('medikent_doctors_v21') || 'null') || [
-  {id:'doc-gokhan-gozun', name:'Uzm. Dr. Gökhan Gözün', departmentId:'dep-cocuk-sagligi', active:true}
+  {id:'doc-gokhan-gozun', name:'Uzm. Dr. Gökhan GÖZÜN', departmentId:'dep-cocuk-sagligi', departmentName:'Çocuk Sağlığı ve Hastalıkları', active:true}
 ];
 
 function saveMasterLocal(){
@@ -54,6 +149,8 @@ function saveMasterLocal(){
 saveMasterLocal();
 
 
+
+ensureOfficialDoctorsLocal();
 
 const sampleData = [
   {
@@ -314,7 +411,7 @@ function renderMasterLists(){
   const depList=$('departmentList');
   if(depList){
     depList.innerHTML=departments.slice().sort((a,b)=>a.name.localeCompare(b.name,'tr')).map(d=>{
-      const linked=doctors.filter(x=>x.departmentId===d.id).length;
+      const linked=doctors.filter(x=>doctorMatchesDepartment(x,d.id) || (x.departmentId===d.id)).length;
       return `<div class="manage-item">
         <div class="edit-row" style="grid-template-columns:1fr auto">
           <input id="dep-name-${d.id}" value="${esc(d.name)}" aria-label="Bölüm adı">
@@ -957,100 +1054,135 @@ async function loadMasterCloud(){
   if(!window.medikentCloud?.enabled) return;
 
   try{
-    const [cloudDeps, cloudDocs] = await Promise.all([
+    const [cloudDeps, cloudDocs]=await Promise.all([
       window.medikentCloud.loadDepartments(),
       window.medikentCloud.loadDoctors()
     ]);
 
-    // Önce yerelde zorunlu 14 bölümü garanti et.
     ensureRequiredDepartmentsLocal();
 
-    // Buluttaki bölümleri yerel listeyle birleştir.
-    const merged = [];
-    const seen = new Set();
+    const cloudDepartments=Array.isArray(cloudDeps)?cloudDeps:[];
+    const cloudDoctors=Array.isArray(cloudDocs)?cloudDocs:[];
 
-    for(const dep of [...departments, ...(Array.isArray(cloudDeps) ? cloudDeps : [])]){
-      const key=(dep.name||'').trim().toLocaleLowerCase('tr');
-      if(key && !seen.has(key)){
-        merged.push(dep);
-        seen.add(key);
-      }
-    }
+    // 1) Tek bir canonical bölüm listesi oluştur.
+    // Hazır bölümler öncelikli; aynı isimli eski Firebase bölümü tekrar eklenmez.
+    const canonicalByName=new Map();
+    const mergedDepartments=[];
 
-    // Zorunlu 14 bölümü son kez garanti et.
     for(const dep of REQUIRED_DEPARTMENTS){
-      const key=dep.name.trim().toLocaleLowerCase('tr');
-      if(!seen.has(key)){
-        merged.push({...dep});
-        seen.add(key);
+      const key=normalizeTr(dep.name);
+      const item={...dep};
+      canonicalByName.set(key,item);
+      mergedDepartments.push(item);
+    }
+
+    // Kullanıcının sonradan eklediği özel bölümleri de koru.
+    for(const dep of [...departments,...cloudDepartments]){
+      if(!dep?.name) continue;
+      const key=normalizeTr(dep.name);
+      if(!canonicalByName.has(key)){
+        canonicalByName.set(key,{...dep});
+        mergedDepartments.push({...dep});
       }
     }
 
-    departments = merged;
+    departments=mergedDepartments;
+
+    // 2) ESKİ FIREBASE BÖLÜM ID -> CANONICAL BÖLÜM eşleme tablosu.
+    // Doktor kaybolmasının ana sebebi buydu.
+    const departmentAliasById=new Map();
+
+    for(const oldDep of cloudDepartments){
+      if(!oldDep?.id || !oldDep?.name) continue;
+      const canonical=canonicalByName.get(normalizeTr(oldDep.name));
+      if(canonical){
+        departmentAliasById.set(oldDep.id,canonical);
+      }
+    }
+
+    // Yerel eski ID'ler için de alias kur.
+    for(const oldDep of departments){
+      if(!oldDep?.id || !oldDep?.name) continue;
+      const canonical=canonicalByName.get(normalizeTr(oldDep.name));
+      if(canonical){
+        departmentAliasById.set(oldDep.id,canonical);
+      }
+    }
+
+    // Bilinen eski ID.
+    const childCanonical=canonicalByName.get(normalizeTr('Çocuk Sağlığı ve Hastalıkları'));
+    if(childCanonical){
+      departmentAliasById.set('dep-cocuk',childCanonical);
+    }
+
     saveMasterLocal();
 
-    // Firebase'de eksik olan zorunlu bölümleri ekle.
-    const cloudNames = new Set(
-      (Array.isArray(cloudDeps) ? cloudDeps : [])
-        .map(d => (d.name||'').trim().toLocaleLowerCase('tr'))
-    );
-
-    for(const dep of REQUIRED_DEPARTMENTS){
-      const key=dep.name.trim().toLocaleLowerCase('tr');
+    // 3) Firebase'de eksik canonical bölümleri ekle.
+    const cloudNames=new Set(cloudDepartments.map(d=>normalizeTr(d.name||'')));
+    for(const dep of departments){
+      const key=normalizeTr(dep.name);
       if(!cloudNames.has(key)){
         await window.medikentCloud.saveDepartment(dep);
       }
     }
 
-    // Doktorları ASLA birbirinin üzerine ezme; bulut + yerel birleştir.
-    const mergedDoctors=[];
-    const doctorIds=new Set();
-
-    for(const d of [...doctors, ...(Array.isArray(cloudDocs)?cloudDocs:[])]){
-      if(!d || !d.id || doctorIds.has(d.id)) continue;
-      const normalized={...d};
-      if(normalized.departmentId==='dep-cocuk'){
-        normalized.departmentId='dep-cocuk-sagligi';
-      }
-      mergedDoctors.push(normalized);
-      doctorIds.add(normalized.id);
+    // 4) Doktorları yerel + bulut birleştir.
+    const doctorMap=new Map();
+    for(const d of [...doctors,...cloudDoctors]){
+      if(!d?.id) continue;
+      // Buluttaki sürüm varsa onu sonradan geldiği için esas alır.
+      doctorMap.set(d.id,{...d});
     }
+    doctors=[...doctorMap.values()];
 
-    doctors=mergedDoctors;
-
-    // Doktor-bölüm ilişkisini canonical hale getir.
-    // Önce departmentName, sonra eski departmentId üzerinden doğru bölümü bul.
+    // 5) Her doktorun bölümünü eski ID veya bölüm adından canonical bölüme taşı.
     for(const d of doctors){
-      let dep=null;
+      let canonical=null;
 
       if(d.departmentName){
-        dep=departments.find(x=>normalizeTr(x.name)===normalizeTr(d.departmentName));
+        canonical=canonicalByName.get(normalizeTr(d.departmentName)) || null;
       }
 
-      if(!dep && d.departmentId){
-        dep=departmentByAny(d.departmentId);
+      if(!canonical && d.departmentId){
+        canonical=departmentAliasById.get(d.departmentId) || null;
       }
 
-      // Eski özel kimlik uyumluluğu
-      if(!dep && d.departmentId==='dep-cocuk'){
-        dep=departments.find(x=>x.id==='dep-cocuk-sagligi') ||
-            departments.find(x=>normalizeTr(x.name)===normalizeTr('Çocuk Sağlığı ve Hastalıkları'));
+      // departmentId aslında bölüm adı olarak kaydedilmiş eski kayıt desteği
+      if(!canonical && d.departmentId){
+        canonical=canonicalByName.get(normalizeTr(d.departmentId)) || null;
       }
 
-      if(dep){
-        const changed = d.departmentId!==dep.id || d.departmentName!==dep.name;
-        d.departmentId=dep.id;
-        d.departmentName=dep.name;
-        if(changed && window.medikentCloud?.enabled){
+      if(canonical){
+        const changed =
+          d.departmentId!==canonical.id ||
+          d.departmentName!==canonical.name;
+
+        d.departmentId=canonical.id;
+        d.departmentName=canonical.name;
+
+        if(changed){
           await window.medikentCloud.saveDoctor(d);
         }
       }
     }
 
-    // Yerelde olup bulutta olmayan doktorları otomatik buluta gönder.
-    const cloudDoctorIds=new Set((Array.isArray(cloudDocs)?cloudDocs:[]).map(d=>d.id));
+    // Yerelde olup bulutta bulunmayan doktorları da buluta gönder.
+    const cloudDoctorIds=new Set(cloudDoctors.map(d=>d.id));
     for(const d of doctors){
       if(!cloudDoctorIds.has(d.id)){
+        await window.medikentCloud.saveDoctor(d);
+      }
+    }
+
+    saveMasterLocal();
+
+    // Resmî başlangıç kadrosundan eksik olanları yerelde ekle.
+    ensureOfficialDoctorsLocal();
+
+    // Yeni eklenen resmî doktorlardan Firebase'de olmayanları gönder.
+    const existingCloudDoctorNames=new Set(cloudDoctors.map(d=>normalizeTr(d.name||'')));
+    for(const d of doctors){
+      if(!existingCloudDoctorNames.has(normalizeTr(d.name||''))){
         await window.medikentCloud.saveDoctor(d);
       }
     }
@@ -1062,12 +1194,11 @@ async function loadMasterCloud(){
 
   }catch(err){
     console.error(err);
-    // Firebase hata verse bile Tanımlar boş kalmasın.
     ensureRequiredDepartmentsLocal();
     populateDefs();
     renderMasterLists();
     renderAll();
-    alert("Firebase senkronunda sorun oluştu; bölümler yerel olarak gösteriliyor.");
+    alert("Bölüm/Doktor senkronunda sorun oluştu: "+(err.message||err));
   }
 }
 window.addEventListener("medikent-cloud-ready",loadMasterCloud);
