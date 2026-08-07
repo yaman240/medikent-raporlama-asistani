@@ -273,7 +273,9 @@ if(photoFilesInput){
 $('activityForm').addEventListener('submit',async e=>{
   e.preventDefault();
   const data={
-    date:$('date').value,title:$('title').value.trim(),
+    date:$('date').value,
+    title:$('title').value.trim(),
+    reportTopic:$('reportTopic').value.trim(),
     branch:$('branch').value,
     branchName:departmentNameById($('branch').value),
     doctor:$('doctor').value,
@@ -395,6 +397,7 @@ window.editActivity=id=>{
   $('editingId').value=a.id;
   $('date').value=a.date;
   $('title').value=a.title;
+  $('reportTopic').value=a.reportTopic||'';
   $('type').value=a.type;
   let depValue=a.branch;
   if(!departments.some(d=>d.id===depValue)){
@@ -433,43 +436,188 @@ window.removeActivity=id=>{
   }
 };
 
+function trDate(dateStr){
+  if(!dateStr) return '';
+  const [y,m,d]=dateStr.split('-');
+  const months=['','OCAK','ŞUBAT','MART','NİSAN','MAYIS','HAZİRAN','TEMMUZ','AĞUSTOS','EYLÜL','EKİM','KASIM','ARALIK'];
+  return `${Number(d)} ${months[Number(m)]} ${y}`;
+}
+
+function filteredReportRows(){
+  const m=$('reportMonth').value;
+  const topic=($('reportTopicFilter').value||'').trim().toLocaleLowerCase('tr');
+  return getMonthData(m)
+    .filter(a=>{
+      if(!topic) return true;
+      const source=(a.reportTopic||a.title||'').toLocaleLowerCase('tr');
+      return source.includes(topic);
+    })
+    .sort((a,b)=>a.date.localeCompare(b.date));
+}
+
+function reportFileBase(){
+  const m=$('reportMonth').value||'rapor';
+  const topic=($('reportTopicFilter').value||'faaliyet')
+    .trim()
+    .replace(/[^\p{L}\p{N}]+/gu,'-')
+    .replace(/^-|-$/g,'')
+    .toLocaleLowerCase('tr');
+  return `medikent-${topic||'faaliyet'}-${m}`;
+}
+
+function autoClosingText(rows, monthLabel, topicLabel){
+  const total=(k)=>rows.reduce((s,a)=>s+(+a[k]||0),0);
+  const participants=total('participants');
+  const views=total('views');
+  const reach=total('reach');
+  const engagement=total('engagement');
+
+  let text=`${monthLabel} boyunca ${topicLabel ? topicLabel + ' kapsamında ' : ''}${rows.length} faaliyet gerçekleştirildi.`;
+  if(views) text+=` Faaliyetlerin toplam görüntülenme sayısı ${fmt(views)} olarak kaydedildi.`;
+  if(reach) text+=` Toplam erişim ${fmt(reach)} oldu.`;
+  if(engagement) text+=` Toplam etkileşim ${fmt(engagement)} olarak gerçekleşti.`;
+  if(participants) text+=` Yüz yüze etkinlik ve eğitimlere toplam ${fmt(participants)} kişi katıldı.`;
+  return text;
+}
+
 function generateReport(){
   const m=$('reportMonth').value;
-  const rows=getMonthData(m).sort((a,b)=>a.date.localeCompare(b.date));
-  const total=(k)=>rows.reduce((s,a)=>s+(+a[k]||0),0);
+  const rows=filteredReportRows();
   const [y,mo]=m.split('-');
   const monthNames=['','Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
-  const title=`${monthNames[+mo]} ${y} Faaliyet Raporu`;
-  const doctorCount=new Set(rows.map(a=>a.doctor).filter(Boolean)).size;
-  const branchCount=new Set(rows.map(a=>a.branch).filter(Boolean)).size;
+  const monthLabel=`${monthNames[+mo]} ${y}`;
+  const topicRaw=($('reportTopicFilter').value||'').trim();
+  const inferredTopic = topicRaw || [...new Set(rows.map(a=>a.reportTopic).filter(Boolean))].join(' / ') || 'Faaliyet';
+  const headingTopic=inferredTopic.toLocaleUpperCase('tr');
 
-  $('reportOutput').innerHTML = `
-    <h1>MEDİKENT HASTANESİ</h1>
-    <h2>${title}</h2>
-    <p class="meta">Otomatik oluşturulan faaliyet ve istatistik özeti</p>
-    <hr>
-    <p><b>Toplam faaliyet:</b> ${rows.length}<br>
-    <b>Faaliyet gösteren branş:</b> ${branchCount}<br>
-    <b>Görev alan doktor/sorumlu:</b> ${doctorCount}<br>
-    <b>Toplam görüntülenme:</b> ${fmt(total('views'))}<br>
-    <b>Toplam erişim:</b> ${fmt(total('reach'))}<br>
-    <b>Toplam etkileşim:</b> ${fmt(total('engagement'))}<br>
-    <b>Toplam katılımcı:</b> ${fmt(total('participants'))}</p>
-    <h3>Faaliyetler</h3>
-    ${rows.map(a=>`
-      <p><b>${esc(a.date)} – ${esc(a.title)}</b><br>
-      ${a.branch||a.branchName?esc(a.branchName || departmentNameById(a.branch) || a.branch):''}${a.doctor||a.doctorName?' – '+esc(a.doctorName || doctorNameById(a.doctor) || a.doctor):''}
-      ${a.type?'<br><i>'+esc(a.type)+(a.platform?' / '+esc(a.platform):'')+'</i>':''}
-      ${a.socialLink?'<br><span>Bağlantı: '+esc(a.socialLink)+'</span>':''}
-      ${a.note?'<br>'+esc(a.note):''}
-      ${Array.isArray(a.photos)&&a.photos.length?'<div class="report-photo-grid">'+a.photos.map(p=>`<img src="${esc(p.url)}" alt="Faaliyet fotoğrafı">`).join('')+'</div>':''}
-      </p>`).join('') || '<p>Bu ay için kayıt bulunmuyor.</p>'}
+  const total=(k)=>rows.reduce((s,a)=>s+(+a[k]||0),0);
+  const closingManual=($('reportClosingText').value||'').trim();
+  const closing=closingManual || autoClosingText(rows, monthLabel, inferredTopic);
+
+  const activityHtml = rows.map(a=>{
+    const stats=[];
+    if(+a.views) stats.push(`<li>Görüntülenme: <b>${fmt(a.views)}</b></li>`);
+    if(+a.reach) stats.push(`<li>Erişim: <b>${fmt(a.reach)}</b></li>`);
+    if(+a.likes) stats.push(`<li>Beğeni: <b>${fmt(a.likes)}</b></li>`);
+    if(+a.engagement) stats.push(`<li>Etkileşim: <b>${fmt(a.engagement)}</b></li>`);
+    if(+a.participants) stats.push(`<li>Katılımcı: <b>${fmt(a.participants)}</b></li>`);
+
+    const photos=Array.isArray(a.photos)?a.photos:[];
+    return `
+      <div class="report-section">
+        <div class="report-date">${esc(trDate(a.date))}</div>
+        <div><b>${esc(a.title||'')}</b></div>
+        <div class="report-doctor">
+          ${esc(a.branchName || departmentNameById(a.branch) || a.branch || '')}
+          ${(a.doctorName || doctorNameById(a.doctor) || a.doctor) ? ' – ' + esc(a.doctorName || doctorNameById(a.doctor) || a.doctor) : ''}
+        </div>
+        ${a.platform?`<div><i>${esc(a.platform)}</i></div>`:''}
+        ${stats.length?`<ul class="report-stats">${stats.join('')}</ul>`:''}
+        ${a.note?`<p>${esc(a.note)}</p>`:''}
+        ${a.socialLink?`<div class="report-link">Bağlantı: ${esc(a.socialLink)}</div>`:''}
+        ${photos.length?`<div class="report-photo-grid">${photos.map(p=>`<img crossorigin="anonymous" src="${esc(p.url)}" alt="Faaliyet fotoğrafı">`).join('')}</div>`:''}
+      </div>
+      <hr class="report-divider">
+    `;
+  }).join('');
+
+  $('reportOutput').innerHTML=`
+    <div class="report-header">
+      <h1>MEDİKENT HASTANESİ</h1>
+      <h2>${esc(headingTopic)} ${esc(monthNames[+mo].toLocaleUpperCase('tr'))} AYI ÇALIŞMALARI</h2>
+    </div>
+
+    ${activityHtml || '<p>Seçilen ay ve konu için faaliyet bulunamadı.</p>'}
+
+    ${rows.length?`
+      <div class="report-summary">
+        <h3>${esc(monthLabel)} Aylık Özet</h3>
+        <div class="report-summary-grid">
+          <div><b>Toplam Faaliyet</b><br>${rows.length}</div>
+          <div><b>Toplam Görüntülenme</b><br>${fmt(total('views'))}</div>
+          <div><b>Toplam Erişim</b><br>${fmt(total('reach'))}</div>
+          <div><b>Toplam Etkileşim</b><br>${fmt(total('engagement'))}</div>
+          <div><b>Toplam Beğeni</b><br>${fmt(total('likes'))}</div>
+          <div><b>Toplam Katılımcı</b><br>${fmt(total('participants'))}</div>
+        </div>
+        <div class="report-closing">
+          <h3>Değerlendirme</h3>
+          <p>${esc(closing)}</p>
+        </div>
+      </div>`:''}
   `;
+}
+
+async function reportHtmlWithEmbeddedImages(){
+  const clone=$('reportOutput').cloneNode(true);
+  const imgs=[...clone.querySelectorAll('img')];
+
+  for(const img of imgs){
+    try{
+      const resp=await fetch(img.src);
+      const blob=await resp.blob();
+      const dataUrl=await new Promise((resolve,reject)=>{
+        const reader=new FileReader();
+        reader.onload=()=>resolve(reader.result);
+        reader.onerror=reject;
+        reader.readAsDataURL(blob);
+      });
+      img.src=dataUrl;
+    }catch(err){
+      console.warn('Word için fotoğraf gömülemedi:',err);
+    }
+  }
+
+  return clone.innerHTML;
+}
+
+async function downloadWordReport(){
+  generateReport();
+  const body=await reportHtmlWithEmbeddedImages();
+  const css=`
+    body{font-family:Arial,sans-serif;color:#111}
+    .report-header{text-align:center;margin-bottom:24px}
+    .report-header h1{font-size:18pt;margin:0 0 8pt}
+    .report-header h2{font-size:16pt;margin:0}
+    .report-section{margin:18pt 0}
+    .report-date{font-weight:bold;margin-bottom:5pt}
+    .report-doctor{font-weight:bold}
+    .report-photo-grid{margin:10pt 0}
+    .report-photo-grid img{width:45%;max-height:240px;object-fit:cover;margin:4pt}
+    .report-summary{margin-top:24pt;border-top:2px solid #222;padding-top:10pt}
+    .report-summary-grid div{margin:4pt 0}
+    .report-link{font-size:9pt}
+  `;
+  const html=`<!DOCTYPE html><html><head><meta charset="utf-8"><style>${css}</style></head><body>${body}</body></html>`;
+  const blob=new Blob(['\ufeff',html],{type:'application/msword'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=reportFileBase()+'.doc';
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+
+async function downloadPdfReport(){
+  generateReport();
+  const element=$('reportOutput');
+  const opt={
+    margin:[10,10,10,10],
+    filename:reportFileBase()+'.pdf',
+    image:{type:'jpeg',quality:0.96},
+    html2canvas:{scale:2,useCORS:true,allowTaint:false},
+    jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},
+    pagebreak:{mode:['css','legacy'],avoid:['.report-section']}
+  };
+  await html2pdf().set(opt).from(element).save();
 }
 
 $('refreshStats').onclick=renderStats;
 $('generateReport').onclick=generateReport;
+$('downloadWordBtn').onclick=downloadWordReport;
+$('downloadPdfBtn').onclick=downloadPdfReport;
 $('searchInput').addEventListener('input',renderRecords);
+$('reportTopicFilter').addEventListener('input',generateReport);
+$('reportMonth').addEventListener('change',generateReport);
 $('printBtn').onclick=()=>window.print();
 
 $('exportBtn').onclick=()=>{

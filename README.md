@@ -1,37 +1,26 @@
-# Medikent Raporlama Asistanı v2.6
+# Medikent Raporlama Asistanı v2.7
 
-## Yeni özellikler
-- Faaliyet kaydına isteğe bağlı fotoğraf yükleme
-- Birden fazla fotoğraf seçme
-- Fotoğraf önizleme
-- Sosyal medya / haber linki alanı
-- Fotoğrafları Firebase Storage'a yükleme
-- Fotoğraf bağlantılarını Firestore faaliyet kaydında saklama
-- Otomatik raporda faaliyet fotoğraflarını gösterme
+## Yeni: Fotoğraflı Kurum Raporu
 
-## Önemli
-Firebase Storage etkin olmalıdır.
+Faaliyet kayıtlarından gönderilen örneğe benzer aylık rapor oluşturur.
 
-Firebase Console:
-Build / Storage > Get started
+Rapor yapısı:
+- MEDİKENT HASTANESİ başlığı
+- Rapor konusu / kampanya + ay
+- Tarih sırasına göre faaliyetler
+- Bölüm ve doktor
+- Platform / kurum
+- Görüntülenme, erişim, beğeni, etkileşim, katılımcı
+- Açıklama
+- Sosyal medya / haber linki
+- Yüklenen faaliyet fotoğrafları
+- Aylık toplu istatistik
+- Otomatik veya manuel değerlendirme metni
 
-Önerilen başlangıç Storage kuralı:
+## Çıktılar
+- Word İndir (.doc)
+- PDF İndir (.pdf)
 
-rules_version = '2';
-
-service firebase.storage {
-  match /b/{bucket}/o {
-    match /activity-photos/{allPaths=**} {
-      allow read, write: if request.auth != null;
-    }
-  }
-}
-
-Bu kural yalnızca oturum açmış kullanıcıların faaliyet fotoğraflarına erişmesine izin verir.
-
-## GitHub'a yüklenecek dosyalar
-- index.html
-- app.js
-- style.css
-- firebase-app.js
-- README.md
+## Not
+PDF için html2pdf.js CDN kullanılır.
+Word çıktısında Firebase Storage görselleri mümkün olduğunda belge içine gömülür.

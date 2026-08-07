@@ -18,7 +18,7 @@
         <span id="userName"></span>
         <button id="logoutBtn" class="secondary hidden">Çıkış</button>
       </div>
-      <span class="version">v2.6</span>
+      <span class="version">v2.7</span>
       <button id="printBtn" class="secondary">Yazdır</button>
     </div>
   </header>
@@ -76,6 +76,9 @@
             <div class="grid">
               <label>Tarih<input type="date" id="date" required></label>
               <label>Faaliyet Başlığı<input type="text" id="title" required placeholder="Örn. Fenilketonüri Bilgilendirme Videosu"></label>
+              <label>Rapor Konusu / Kampanya
+                <input type="text" id="reportTopic" placeholder="Örn. Fenilketonüri">
+              </label>
 
               <label>Faaliyet Türü
                 <select id="type" required></select>
@@ -149,9 +152,23 @@
 
       <section id="report" class="view">
         <div class="panel">
-          <div class="toolbar">
-            <label>Rapor Ayı<input type="month" id="reportMonth"></label>
-            <button id="generateReport">Raporu Oluştur</button>
+          <div class="report-controls">
+            <div class="grid">
+              <label>Rapor Ayı
+                <input type="month" id="reportMonth">
+              </label>
+              <label>Rapor Konusu
+                <input type="text" id="reportTopicFilter" placeholder="Örn. Fenilketonüri">
+              </label>
+            </div>
+            <label>Rapor Sonu Açıklaması / Değerlendirme
+              <textarea id="reportClosingText" rows="4" placeholder="İstersen kuruma verilecek sonuç/değerlendirme metnini buraya yazabilirsin. Boş bırakırsan otomatik özet oluşturulur."></textarea>
+            </label>
+            <div class="actions">
+              <button id="generateReport">Raporu Oluştur</button>
+              <button id="downloadWordBtn" class="secondary">Word İndir</button>
+              <button id="downloadPdfBtn" class="secondary">PDF İndir</button>
+            </div>
           </div>
           <div id="reportOutput" class="report-paper"></div>
         </div>
@@ -211,6 +228,7 @@
     </div>
   </div>
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <script type="module" src="firebase-app.js"></script>
   <script src="app.js"></script>
 </body>
