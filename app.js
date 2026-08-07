@@ -77,9 +77,17 @@ async function loadCloudIfAvailable(){
     try{
       const cloudRows = await window.medikentCloud.loadActivities();
       if(Array.isArray(cloudRows)){
-        activities = cloudRows.length ? cloudRows : activities;
-        localSave();
-        renderAll();
+        if(cloudRows.length){
+          activities = cloudRows;
+          localSave();
+          renderAll();
+        }
+        const status = document.getElementById("cloudTransferStatus");
+        if(status){
+          status.textContent = cloudRows.length
+            ? `Bulutta ${cloudRows.length} kayıt bulundu.`
+            : "Bulutta henüz kayıt yok. İstersen mevcut yerel kayıtları aktarabilirsin.";
+        }
       }
     }catch(err){
       console.error(err);
@@ -318,6 +326,38 @@ $('importFile').addEventListener('change',async e=>{
     alert('Yedek geri yüklendi.');
   }catch{alert('Geçersiz yedek dosyası.');}
 });
+
+
+const cloudUploadBtn = document.getElementById("cloudUploadBtn");
+if(cloudUploadBtn){
+  cloudUploadBtn.onclick = async ()=>{
+    if(!window.medikentCloud?.enabled){
+      alert("Önce Google hesabınızla giriş yapın.");
+      return;
+    }
+    if(!activities.length){
+      alert("Aktarılacak yerel kayıt bulunmuyor.");
+      return;
+    }
+    if(!confirm(`${activities.length} kayıt Firebase'e aktarılacak. Devam edilsin mi?`)) return;
+
+    cloudUploadBtn.disabled = true;
+    const status = document.getElementById("cloudTransferStatus");
+    if(status) status.textContent = "Buluta aktarılıyor...";
+    try{
+      const count = await window.medikentCloud.uploadActivities(activities);
+      if(status) status.textContent = `${count} kayıt Firebase'e aktarıldı.`;
+      alert(`${count} kayıt buluta aktarıldı.`);
+      await loadCloudIfAvailable();
+    }catch(err){
+      console.error(err);
+      if(status) status.textContent = "Aktarım başarısız.";
+      alert("Buluta aktarım başarısız: " + (err.message || err));
+    }finally{
+      cloudUploadBtn.disabled = false;
+    }
+  };
+}
 
 function renderAll(){renderStats();renderRecords();generateReport();}
 populateDefs();

@@ -21,12 +21,12 @@ import {
   bölümünden alın ve buraya yapıştırın.
 */
 const firebaseConfig = {
-  apiKey: "BURAYA_API_KEY",
-  authDomain: "BURAYA_AUTH_DOMAIN",
-  projectId: "BURAYA_PROJECT_ID",
-  storageBucket: "BURAYA_STORAGE_BUCKET",
-  messagingSenderId: "BURAYA_MESSAGING_SENDER_ID",
-  appId: "BURAYA_APP_ID"
+  apiKey: "AIzaSyDVzPiLxGhAXruBvI1w17rIDuIP_ciz8wI",
+  authDomain: "medikent-raporlama-asistani.firebaseapp.com",
+  projectId: "medikent-raporlama-asistani",
+  storageBucket: "medikent-raporlama-asistani.firebasestorage.app",
+  messagingSenderId: "192985289829",
+  appId: "1:192985289829:web:dc98f066290d04be1ea28c"
 };
 
 const configured = !Object.values(firebaseConfig).some(v => String(v).startsWith("BURAYA_"));
@@ -44,7 +44,8 @@ window.medikentCloud = {
   currentUser: null,
   async loadActivities(){ return null; },
   async saveActivity(){},
-  async deleteActivity(){}
+  async deleteActivity(){},
+  async uploadActivities(){ return 0; }
 };
 
 function enterLocalMode(){
@@ -101,11 +102,26 @@ if(!configured){
     };
 
     window.medikentCloud.saveActivity = async activity=>{
-      await setDoc(doc(db, "activities", activity.id), activity);
+      const payload = {
+        ...activity,
+        updatedByUid: user.uid,
+        updatedByEmail: user.email || "",
+        updatedAt: new Date().toISOString()
+      };
+      await setDoc(doc(db, "activities", activity.id), payload, {merge:true});
     };
 
     window.medikentCloud.deleteActivity = async id=>{
       await deleteDoc(doc(db, "activities", id));
+    };
+
+    window.medikentCloud.uploadActivities = async rows=>{
+      let count = 0;
+      for(const activity of rows){
+        await window.medikentCloud.saveActivity(activity);
+        count++;
+      }
+      return count;
     };
 
     window.dispatchEvent(new CustomEvent("medikent-cloud-ready"));

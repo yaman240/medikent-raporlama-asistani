@@ -1,26 +1,41 @@
-# Medikent Raporlama Asistanı v1.2
+# Medikent Raporlama Asistanı v1.3
 
-## Yeni özellikler
-- Firebase/Firestore altyapısı
+Bu sürüm Firebase projesine gerçek olarak bağlanmıştır.
+
+## Özellikler
 - Google ile kullanıcı girişi
-- Çoklu cihaz için ortak veri yapısı
-- Firebase aktif değilse geçici yerel mod
-- Kullanıcı adı ve çıkış düğmesi
-- v1.1 özelliklerinin tamamı korunur
+- Cloud Firestore ortak kayıt sistemi
+- Bilgisayar ve telefonda aynı kayıtların görünmesi
+- Kayıt ekleme / düzenleme / silme Firestore ile senkron
+- Mevcut localStorage kayıtlarını tek tuşla Firebase'e aktarma
+- JSON yedek alma / geri yükleme
+- v1.1 arayüz ve raporlama özelliklerinin tamamı korunur
 
-## Firebase kurulumu
-1. Firebase Console'da yeni proje oluşturun.
-2. Authentication > Sign-in method > Google etkinleştirin.
-3. Firestore Database oluşturun.
-4. Project settings > Your apps > Web App ekleyin.
-5. Verilen firebaseConfig değerlerini firebase-app.js içindeki alanlara yapıştırın.
-6. GitHub'a şu dosyaları yükleyin:
-   - index.html
-   - style.css
-   - app.js
-   - firebase-app.js
-   - README.md
+## GitHub'a yüklenecek dosyalar
+- index.html
+- style.css
+- app.js
+- firebase-app.js
+- README.md
 
-## Önemli
-Firestore güvenlik kuralları ayrıca ayarlanmalıdır.
-Kurallar yapılmadan uygulamayı gerçek kullanıcılarla kullanmayın.
+## Firebase Authentication için önemli
+Firebase Console > Authentication > Settings > Authorized domains
+bölümünde şu alanın bulunması gerekir:
+
+yaman240.github.io
+
+Bulunmuyorsa ekleyin.
+
+## Firestore güvenlik kuralı (geliştirme aşaması)
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
+
+Bu kural yalnızca oturum açmış kullanıcıların veriye erişmesini sağlar.
+İlerleyen sürümde admin/personel/görüntüleyici rolleriyle daraltılacaktır.
