@@ -67,9 +67,28 @@ const sampleData = [
 ];
 
 let activities = JSON.parse(localStorage.getItem(KEY) || 'null');
-if(!activities){ activities=sampleData; save(); }
+if(!activities){ activities=sampleData; localSave(); }
 
-function save(){ localStorage.setItem(KEY,JSON.stringify(activities)); }
+function localSave(){ localStorage.setItem(KEY,JSON.stringify(activities)); }
+function save(){ localSave(); }
+
+async function loadCloudIfAvailable(){
+  if(window.medikentCloud?.enabled){
+    try{
+      const cloudRows = await window.medikentCloud.loadActivities();
+      if(Array.isArray(cloudRows)){
+        activities = cloudRows.length ? cloudRows : activities;
+        localSave();
+        renderAll();
+      }
+    }catch(err){
+      console.error(err);
+      alert("Firebase verileri alınamadı. Yerel kayıtlar gösteriliyor.");
+    }
+  }
+}
+window.addEventListener("medikent-cloud-ready", loadCloudIfAvailable);
+
 function fmt(n){ return Number(n||0).toLocaleString('tr-TR'); }
 function monthOf(date){ return (date||'').slice(0,7); }
 function esc(s=''){ return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
@@ -115,7 +134,7 @@ document.querySelectorAll('.nav').forEach(btn=>btn.addEventListener('click',()=>
 $('branch').addEventListener('change',()=>updateDoctors());
 $('type').addEventListener('change',toggleConditionalFields);
 
-$('activityForm').addEventListener('submit',e=>{
+$('activityForm').addEventListener('submit',async e=>{
   e.preventDefault();
   const data={
     date:$('date').value,title:$('title').value.trim(),branch:$('branch').value,doctor:$('doctor').value,
@@ -131,7 +150,17 @@ $('activityForm').addEventListener('submit',e=>{
   }else{
     activities.push({id:crypto.randomUUID(),...data});
   }
-  save(); resetForm(); renderAll();
+  save();
+  const savedActivity = editingId
+    ? activities.find(a=>a.id===editingId)
+    : activities[activities.length-1];
+
+  if(window.medikentCloud?.enabled && savedActivity){
+    try{ await window.medikentCloud.saveActivity(savedActivity); }
+    catch(err){ console.error(err); alert("Kayıt yerel olarak kaydedildi ancak Firebase'e gönderilemedi."); }
+  }
+
+  resetForm(); renderAll();
   alert(editingId?'Kayıt güncellendi.':'Faaliyet kaydedildi.');
 });
 
@@ -214,9 +243,15 @@ window.editActivity=id=>{
   toggleConditionalFields();
 };
 
-window.removeActivity=id=>{
+window.removeActivity=async id=>{
   if(confirm('Bu kayıt silinsin mi?')){
-    activities=activities.filter(a=>a.id!==id); save(); renderAll();
+    activities=activities.filter(a=>a.id!==id);
+    save();
+    if(window.medikentCloud?.enabled){
+      try{ await window.medikentCloud.deleteActivity(id); }
+      catch(err){ console.error(err); alert("Kayıt yerelde silindi ancak Firebase'den silinemedi."); }
+    }
+    renderAll();
   }
 };
 

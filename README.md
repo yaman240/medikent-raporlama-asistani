@@ -1,24 +1,26 @@
-# Medikent Raporlama Asistanı v1.1
+# Medikent Raporlama Asistanı v1.2
 
 ## Yeni özellikler
-- Hazır faaliyet türleri
-- Branş seçimi
-- Branşa göre doktor seçimi
-- Kayıt düzenleme
-- Geliştirilmiş aylık istatistik
-- Faaliyet dağılım grafiği
-- Geliştirilmiş rapor
-- Tanımlar ekranı
-- JSON yedekleme
+- Firebase/Firestore altyapısı
+- Google ile kullanıcı girişi
+- Çoklu cihaz için ortak veri yapısı
+- Firebase aktif değilse geçici yerel mod
+- Kullanıcı adı ve çıkış düğmesi
+- v1.1 özelliklerinin tamamı korunur
 
-## GitHub güncelleme
-Eski repository içindeki:
-- index.html
-- app.js
-- style.css
-- README.md
+## Firebase kurulumu
+1. Firebase Console'da yeni proje oluşturun.
+2. Authentication > Sign-in method > Google etkinleştirin.
+3. Firestore Database oluşturun.
+4. Project settings > Your apps > Web App ekleyin.
+5. Verilen firebaseConfig değerlerini firebase-app.js içindeki alanlara yapıştırın.
+6. GitHub'a şu dosyaları yükleyin:
+   - index.html
+   - style.css
+   - app.js
+   - firebase-app.js
+   - README.md
 
-dosyalarını bu sürümdekilerle değiştirin.
-
-Veriler tarayıcı localStorage alanında tutulmaya devam eder.
-Bir sonraki sürüm: Firebase/Firestore + kullanıcı girişi + çoklu cihaz.
+## Önemli
+Firestore güvenlik kuralları ayrıca ayarlanmalıdır.
+Kurallar yapılmadan uygulamayı gerçek kullanıcılarla kullanmayın.

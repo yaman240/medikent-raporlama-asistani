@@ -13,7 +13,12 @@
       <p>Faaliyet • İstatistik • Otomatik Rapor</p>
     </div>
     <div class="top-actions">
-      <span class="version">v1.1</span>
+      <div class="user-box">
+        <span id="syncBadge" class="sync-badge offline">Yerel Mod</span>
+        <span id="userName"></span>
+        <button id="logoutBtn" class="secondary hidden">Çıkış</button>
+      </div>
+      <span class="version">v1.2</span>
       <button id="printBtn" class="secondary">Yazdır</button>
     </div>
   </header>
@@ -162,6 +167,18 @@
     </section>
   </main>
 
+  
+  <div id="loginOverlay" class="login-overlay">
+    <div class="login-card">
+      <h2>Medikent Raporlama Asistanı</h2>
+      <p id="loginStatus">Firebase bağlantısı kontrol ediliyor...</p>
+      <button id="googleLoginBtn" class="hidden">Google ile Giriş Yap</button>
+      <button id="localModeBtn" class="secondary hidden">Geçici Yerel Mod</button>
+    </div>
+  </div>
+
+  <script type="module" src="firebase-app.js"></script>
   <script src="app.js"></script>
+
 </body>
 </html>
