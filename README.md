@@ -1,26 +1,17 @@
-# Medikent Raporlama Asistanı v2.7
+# Medikent Raporlama Asistanı v2.8
 
-## Yeni: Fotoğraflı Kurum Raporu
+## Kritik veri düzeltmeleri
 
-Faaliyet kayıtlarından gönderilen örneğe benzer aylık rapor oluşturur.
+- Doktorlar artık Firebase listesi geldiğinde silinmez/ezilmez.
+- Yeni doktor Firebase'e başarıyla yazılmadan "kaydedildi" denmez.
+- Yerel ve Firebase doktor listeleri ID bazında birleştirilir.
+- Faaliyet kaydı Firebase'e başarıyla yazılmadan başarı mesajı verilmez.
+- Fotoğraf seçilmişse Storage yüklemesi başarısız olduğunda kayıt tamamlanmaz.
+- Kayıtlar ekranında fotoğraf sayısı görünür.
+- Faaliyet kaydedilince rapor ayı otomatik o faaliyetin ayına geçer.
+- Firebase'den kayıtlar yüklenince rapor ayı son kayıt ayına otomatik geçer.
+- Silme işlemi yeniden Firebase ile senkron çalışır.
 
-Rapor yapısı:
-- MEDİKENT HASTANESİ başlığı
-- Rapor konusu / kampanya + ay
-- Tarih sırasına göre faaliyetler
-- Bölüm ve doktor
-- Platform / kurum
-- Görüntülenme, erişim, beğeni, etkileşim, katılımcı
-- Açıklama
-- Sosyal medya / haber linki
-- Yüklenen faaliyet fotoğrafları
-- Aylık toplu istatistik
-- Otomatik veya manuel değerlendirme metni
-
-## Çıktılar
-- Word İndir (.doc)
-- PDF İndir (.pdf)
-
-## Not
-PDF için html2pdf.js CDN kullanılır.
-Word çıktısında Firebase Storage görselleri mümkün olduğunda belge içine gömülür.
+## Fotoğraf için önemli
+Cloud Storage for Firebase güncel olarak Blaze plan gerektirir.
+Storage etkin değilse uygulama artık fotoğrafı kaydetmiş gibi davranmaz; açık hata gösterir.

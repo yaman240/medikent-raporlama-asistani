@@ -108,6 +108,9 @@ async function loadCloudIfAvailable(){
     if(Array.isArray(cloudRows) && cloudRows.length){
       activities = cloudRows;
       localSave();
+      const latest=latestActivityMonth();
+      if(monthFilter) monthFilter.value=latest;
+      if(reportMonth) reportMonth.value=latest;
       renderAll();
     }
     const status = document.getElementById("cloudTransferStatus");
@@ -133,8 +136,17 @@ let retainedExistingPhotos = [];
 
 const monthFilter=$('monthFilter');
 const reportMonth=$('reportMonth');
-const defaultMonth='2026-06';
-monthFilter.value=defaultMonth; reportMonth.value=defaultMonth;
+function currentMonthValue(){
+  const d=new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+}
+function latestActivityMonth(){
+  const months=activities.map(a=>monthOf(a.date)).filter(Boolean).sort();
+  return months.length ? months[months.length-1] : currentMonthValue();
+}
+const defaultMonth=latestActivityMonth();
+monthFilter.value=defaultMonth;
+reportMonth.value=defaultMonth;
 
 function populateDefs(){
   ensureRequiredDepartmentsLocal();
@@ -272,7 +284,13 @@ if(photoFilesInput){
 
 $('activityForm').addEventListener('submit',async e=>{
   e.preventDefault();
+
+  const editingId=$('editingId').value;
+  const activityId=editingId || crypto.randomUUID();
+  const existing=editingId ? activities.find(a=>a.id===editingId) : null;
+
   const data={
+    id:activityId,
     date:$('date').value,
     title:$('title').value.trim(),
     reportTopic:$('reportTopic').value.trim(),
@@ -284,52 +302,67 @@ $('activityForm').addEventListener('submit',async e=>{
     platform:$('platform').value.trim(),
     socialLink:$('socialLink').value.trim(),
     photos:[...retainedExistingPhotos],
-    views:+$('views').value||0,reach:+$('reach').value||0,likes:+$('likes').value||0,
-    engagement:+$('engagement').value||0,participants:+$('participants').value||0,
+    views:+$('views').value||0,
+    reach:+$('reach').value||0,
+    likes:+$('likes').value||0,
+    engagement:+$('engagement').value||0,
+    participants:+$('participants').value||0,
     note:$('note').value.trim()
   };
-  const editingId=$('editingId').value;
-  if(editingId){
-    const i=activities.findIndex(a=>a.id===editingId);
-    if(i>=0) activities[i]={...activities[i],...data};
-  }else{
-    activities.push({id:crypto.randomUUID(),...data});
-  }
-  save();
-  const savedActivity = editingId
-    ? activities.find(a=>a.id===editingId)
-    : activities[activities.length-1];
 
-  if(savedActivity && selectedPhotoFiles.length){
+  let draft={...(existing||{}),...data};
+
+  // Fotoğraf seçildiyse, yükleme başarılı olmadan kaydı tamamlanmış sayma.
+  if(selectedPhotoFiles.length){
     if(!window.medikentCloud?.enabled){
-      alert("Fotoğraflar Firebase'e yüklenemedi çünkü bulut bağlantısı aktif değil.");
-    }else{
-      try{
-        const uploaded = await window.medikentCloud.uploadActivityPhotos(savedActivity.id, selectedPhotoFiles);
-        savedActivity.photos = [...(savedActivity.photos||[]), ...uploaded];
-        const idx = activities.findIndex(a=>a.id===savedActivity.id);
-        if(idx>=0) activities[idx]=savedActivity;
-        save();
-      }catch(err){
-        console.error(err);
-        alert("Fotoğraf yüklenemedi: " + (err.message || err));
-      }
+      alert("Fotoğraf seçildi ancak Firebase bağlantısı aktif değil. Kayıt tamamlanmadı.");
+      return;
     }
-  }
 
-  if(window.medikentCloud?.enabled && savedActivity){
     try{
-      await window.medikentCloud.saveActivity(savedActivity);
+      const uploaded=await window.medikentCloud.uploadActivityPhotos(activityId,selectedPhotoFiles);
+      draft.photos=[...(draft.photos||[]),...uploaded];
     }catch(err){
       console.error(err);
-      alert("Kayıt yerelde kaydedildi ancak Firebase'e gönderilemedi: " + (err.message || err));
+      const code=err?.code||'';
+      let msg="Fotoğraf Firebase Storage'a yüklenemedi.";
+      if(code.includes('unauthorized')) msg+=" Storage izinlerini kontrol edin.";
+      else if(code.includes('bucket-not-found') || code.includes('object-not-found')) msg+=" Firebase Storage henüz etkin olmayabilir.";
+      else msg+=" "+(err.message||err);
+      msg+=" Fotoğraf yüklenmediği için kayıt tamamlanmadı.";
+      alert(msg);
+      return;
     }
   }
 
-  resetForm(); renderAll();
+  // Bulut aktifse önce Firestore'a yaz; başarısızsa kullanıcıya başarı mesajı verme.
+  if(window.medikentCloud?.enabled){
+    try{
+      await window.medikentCloud.saveActivity(draft);
+    }catch(err){
+      console.error(err);
+      alert("Faaliyet Firebase'e kaydedilemedi. Kayıt tamamlanmadı: "+(err.message||err));
+      return;
+    }
+  }
+
+  const idx=activities.findIndex(a=>a.id===activityId);
+  if(idx>=0) activities[idx]=draft;
+  else activities.push(draft);
+
+  save();
+
+  // Kaydedilen faaliyetin ayını doğrudan rapor ayı yap.
+  const savedMonth=monthOf(draft.date);
+  if(savedMonth){
+    monthFilter.value=savedMonth;
+    reportMonth.value=savedMonth;
+  }
+
+  resetForm();
+  renderAll();
   alert(editingId?'Kayıt güncellendi.':'Faaliyet kaydedildi.');
 });
-
 function resetForm(){
   $('activityForm').reset();
   selectedPhotoFiles=[];
@@ -383,7 +416,8 @@ function renderRecords(){
   $('recordsBody').innerHTML=rows.map(a=>`
     <tr>
       <td>${esc(a.date)}</td><td>${esc(a.title)}</td><td>${esc(a.type)}</td><td>${esc(a.branchName || departmentNameById(a.branch) || a.branch)}</td><td>${esc(a.doctorName || doctorNameById(a.doctor) || a.doctor)}</td>
-      <td>${a.views?fmt(a.views)+' görüntülenme':a.participants?fmt(a.participants)+' katılımcı':esc(a.platform||'-')}</td>
+      <td>${a.views?fmt(a.views)+' görüntülenme':a.participants?fmt(a.participants)+' katılımcı':esc(a.platform||'-')}
+      ${Array.isArray(a.photos)&&a.photos.length?`<br><span class="meta">📷 ${a.photos.length} fotoğraf</span>`:''}</td>
       <td>
         <button class="edit-btn" onclick="editActivity('${a.id}')">Düzenle</button>
         <button class="delete-btn" onclick="removeActivity('${a.id}')">Sil</button>
@@ -430,10 +464,22 @@ window.editActivity=id=>{
   toggleConditionalFields();
 };
 
-window.removeActivity=id=>{
-  if(confirm('Bu kayıt silinsin mi?')){
-    activities=activities.filter(a=>a.id!==id); save(); renderAll();
+window.removeActivity=async id=>{
+  if(!confirm('Bu kayıt silinsin mi?')) return;
+
+  if(window.medikentCloud?.enabled){
+    try{
+      await window.medikentCloud.deleteActivity(id);
+    }catch(err){
+      console.error(err);
+      alert("Kayıt Firebase'den silinemedi: "+(err.message||err));
+      return;
+    }
   }
+
+  activities=activities.filter(a=>a.id!==id);
+  save();
+  renderAll();
 };
 
 function trDate(dateStr){
@@ -677,22 +723,43 @@ const doctorForm=$('doctorForm');
 if(doctorForm){
   doctorForm.addEventListener('submit',async e=>{
     e.preventDefault();
+
     const departmentId=$('doctorDepartment').value;
     const name=$('doctorName').value.trim();
-    if(!departmentId||!name)return;
+
+    if(!departmentId || !name){
+      alert('Bölüm ve doktor adı zorunludur.');
+      return;
+    }
+
     if(doctors.some(d=>d.name.toLocaleLowerCase('tr')===name.toLocaleLowerCase('tr'))){
       alert('Bu doktor zaten tanımlı.');
       return;
     }
-    const doctor={id:crypto.randomUUID(),name,departmentId,active:true};
+
+    const doctor={
+      id:crypto.randomUUID(),
+      name,
+      departmentId,
+      active:true
+    };
+
+    if(window.medikentCloud?.enabled){
+      try{
+        await window.medikentCloud.saveDoctor(doctor);
+      }catch(err){
+        console.error(err);
+        alert("Doktor Firebase'e kaydedilemedi. Kayıt tamamlanmadı: "+(err.message||err));
+        return;
+      }
+    }
+
     doctors.push(doctor);
     saveMasterLocal();
     populateDefs();
+    renderMasterLists();
     doctorForm.reset();
-    if(window.medikentCloud?.enabled){
-      try{await window.medikentCloud.saveDoctor(doctor);}
-      catch(err){console.error(err);alert("Doktor yerelde kaydedildi ancak Firebase'e gönderilemedi.");}
-    }
+    alert('Doktor kaydedildi.');
   });
 }
 
@@ -796,19 +863,26 @@ async function loadMasterCloud(){
       }
     }
 
-    // Doktorları buluttan al; bulut boşsa yereli gönder.
-    if(Array.isArray(cloudDocs) && cloudDocs.length){
-      doctors = cloudDocs;
-    }else{
-      for(const d of doctors){
-        await window.medikentCloud.saveDoctor(d);
+    // Doktorları ASLA birbirinin üzerine ezme; bulut + yerel birleştir.
+    const mergedDoctors=[];
+    const doctorIds=new Set();
+
+    for(const d of [...doctors, ...(Array.isArray(cloudDocs)?cloudDocs:[])]){
+      if(!d || !d.id || doctorIds.has(d.id)) continue;
+      const normalized={...d};
+      if(normalized.departmentId==='dep-cocuk'){
+        normalized.departmentId='dep-cocuk-sagligi';
       }
+      mergedDoctors.push(normalized);
+      doctorIds.add(normalized.id);
     }
 
-    // Eski bölüm kimliği uyumluluğu
+    doctors=mergedDoctors;
+
+    // Yerelde olup bulutta olmayan doktorları otomatik buluta gönder.
+    const cloudDoctorIds=new Set((Array.isArray(cloudDocs)?cloudDocs:[]).map(d=>d.id));
     for(const d of doctors){
-      if(d.departmentId === 'dep-cocuk'){
-        d.departmentId = 'dep-cocuk-sagligi';
+      if(!cloudDoctorIds.has(d.id)){
         await window.medikentCloud.saveDoctor(d);
       }
     }
