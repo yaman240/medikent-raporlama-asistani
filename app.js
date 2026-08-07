@@ -1,30 +1,25 @@
 const KEY='medikent_raporlama_v1';
-const DEFKEY='medikent_raporlama_def_v11';
+const DEFKEY='medikent_raporlama_def_v21';
 
-const defaultDefs = {
-  types:[
-    'Sosyal Medya','Basın / Haber','Video','Eğitim','Gebe Okulu',
-    'Sağlık Taraması','Farkındalık Etkinliği','Doktor Röportajı',
-    'TV Programı','Radyo','Etkinlik','Diğer'
-  ],
-  branches:{
-    'Çocuk Sağlığı ve Hastalıkları':['Uzm. Dr. Gökhan Gözün'],
-    'Kadın Hastalıkları ve Doğum':[],
-    'Genel Cerrahi':[],
-    'Kardiyoloji':[],
-    'Kalp ve Damar Cerrahisi':[],
-    'Ortopedi ve Travmatoloji':[],
-    'Kulak Burun Boğaz':[],
-    'Beyin ve Sinir Cerrahisi':[],
-    'Üroloji':[],
-    'Cildiye':[],
-    'Dahiliye':[],
-    'Diğer':[]
-  }
-};
+const defaultTypes = [
+  'Sosyal Medya','Basın / Haber','Video','Eğitim','Gebe Okulu',
+  'Sağlık Taraması','Farkındalık Etkinliği','Doktor Röportajı',
+  'TV Programı','Radyo','Etkinlik','Diğer'
+];
 
-let defs = JSON.parse(localStorage.getItem(DEFKEY) || 'null') || defaultDefs;
-localStorage.setItem(DEFKEY,JSON.stringify(defs));
+let departments = JSON.parse(localStorage.getItem('medikent_departments_v21') || 'null') || [
+  {id:'dep-cocuk', name:'Çocuk Sağlığı ve Hastalıkları'}
+];
+
+let doctors = JSON.parse(localStorage.getItem('medikent_doctors_v21') || 'null') || [
+  {id:'doc-gokhan-gozun', name:'Uzm. Dr. Gökhan Gözün', departmentId:'dep-cocuk', active:true}
+];
+
+function saveMasterLocal(){
+  localStorage.setItem('medikent_departments_v21', JSON.stringify(departments));
+  localStorage.setItem('medikent_doctors_v21', JSON.stringify(doctors));
+}
+saveMasterLocal();
 
 const sampleData = [
   {
@@ -105,19 +100,71 @@ const defaultMonth='2026-06';
 monthFilter.value=defaultMonth; reportMonth.value=defaultMonth;
 
 function populateDefs(){
-  $('type').innerHTML = defs.types.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');
-  $('branch').innerHTML = '<option value="">Seçiniz</option>' + Object.keys(defs.branches).map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');
+  $('type').innerHTML = defaultTypes.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');
+
+  $('branch').innerHTML = '<option value="">Bölüm seçiniz</option>' +
+    departments.slice().sort((a,b)=>a.name.localeCompare(b.name,'tr'))
+      .map(d=>`<option value="${esc(d.id)}">${esc(d.name)}</option>`).join('');
+
+  const dd=$('doctorDepartment');
+  if(dd){
+    dd.innerHTML = '<option value="">Bölüm seçiniz</option>' +
+      departments.slice().sort((a,b)=>a.name.localeCompare(b.name,'tr'))
+        .map(d=>`<option value="${esc(d.id)}">${esc(d.name)}</option>`).join('');
+  }
+
   updateDoctors();
-  $('definitionsList').innerHTML = Object.entries(defs.branches).map(([b,ds])=>`
-    <div class="def-card"><strong>${esc(b)}</strong>${ds.length?ds.map(d=>esc(d)).join(', '):'<span class="muted">Doktor tanımı yok</span>'}</div>
-  `).join('');
+  renderMasterLists();
+}
+
+function departmentNameById(id){
+  return departments.find(d=>d.id===id)?.name || id || '';
+}
+
+function doctorNameById(id){
+  return doctors.find(d=>d.id===id)?.name || id || '';
 }
 
 function updateDoctors(selected=''){
-  const b=$('branch').value;
-  const doctors=defs.branches[b]||[];
-  $('doctor').innerHTML='<option value="">Seçiniz</option>'+doctors.map(d=>`<option value="${esc(d)}">${esc(d)}</option>`).join('');
+  const departmentId=$('branch').value;
+  const filtered=doctors
+    .filter(d=>d.departmentId===departmentId && d.active!==false)
+    .sort((a,b)=>a.name.localeCompare(b.name,'tr'));
+
+  $('doctor').innerHTML='<option value="">Doktor seçiniz</option>'+
+    filtered.map(d=>`<option value="${esc(d.id)}">${esc(d.name)}</option>`).join('');
+
   if(selected) $('doctor').value=selected;
+}
+
+function renderMasterLists(){
+  const depList=$('departmentList');
+  if(depList){
+    depList.innerHTML=departments.slice().sort((a,b)=>a.name.localeCompare(b.name,'tr')).map(d=>{
+      const linked=doctors.filter(x=>x.departmentId===d.id).length;
+      return `<div class="manage-item">
+        <div><strong>${esc(d.name)}</strong><div class="meta">${linked} doktor bağlı</div></div>
+        <div class="manage-actions"><button class="small-btn secondary" onclick="renameDepartment('${d.id}')">Düzenle</button></div>
+      </div>`;
+    }).join('') || '<span class="muted">Henüz bölüm tanımlanmadı.</span>';
+  }
+
+  const docList=$('doctorList');
+  if(docList){
+    docList.innerHTML=doctors.slice().sort((a,b)=>a.name.localeCompare(b.name,'tr')).map(d=>`
+      <div class="manage-item ${d.active===false?'passive':''}">
+        <div>
+          <strong>${esc(d.name)}</strong>
+          <div class="meta">${esc(departmentNameById(d.departmentId))} •
+            <span class="${d.active===false?'status-passive':'status-active'}">${d.active===false?'Pasif':'Aktif'}</span>
+          </div>
+        </div>
+        <div class="manage-actions">
+          <button class="small-btn secondary" onclick="editDoctor('${d.id}')">Düzenle</button>
+          <button class="small-btn" onclick="toggleDoctor('${d.id}')">${d.active===false?'Aktif Yap':'Pasif Yap'}</button>
+        </div>
+      </div>`).join('') || '<span class="muted">Henüz doktor tanımlanmadı.</span>';
+  }
 }
 
 function toggleConditionalFields(){
@@ -142,7 +189,11 @@ $('type').addEventListener('change',toggleConditionalFields);
 $('activityForm').addEventListener('submit',async e=>{
   e.preventDefault();
   const data={
-    date:$('date').value,title:$('title').value.trim(),branch:$('branch').value,doctor:$('doctor').value,
+    date:$('date').value,title:$('title').value.trim(),
+    branch:$('branch').value,
+    branchName:departmentNameById($('branch').value),
+    doctor:$('doctor').value,
+    doctorName:doctorNameById($('doctor').value),
     type:$('type').value,platform:$('platform').value.trim(),
     views:+$('views').value||0,reach:+$('reach').value||0,likes:+$('likes').value||0,
     engagement:+$('engagement').value||0,participants:+$('participants').value||0,
@@ -221,7 +272,7 @@ function renderRecords(){
     .sort((a,b)=>b.date.localeCompare(a.date));
   $('recordsBody').innerHTML=rows.map(a=>`
     <tr>
-      <td>${esc(a.date)}</td><td>${esc(a.title)}</td><td>${esc(a.type)}</td><td>${esc(a.branch)}</td><td>${esc(a.doctor)}</td>
+      <td>${esc(a.date)}</td><td>${esc(a.title)}</td><td>${esc(a.type)}</td><td>${esc(a.branchName || departmentNameById(a.branch) || a.branch)}</td><td>${esc(a.doctorName || doctorNameById(a.doctor) || a.doctor)}</td>
       <td>${a.views?fmt(a.views)+' görüntülenme':a.participants?fmt(a.participants)+' katılımcı':esc(a.platform||'-')}</td>
       <td>
         <button class="edit-btn" onclick="editActivity('${a.id}')">Düzenle</button>
@@ -237,8 +288,19 @@ window.editActivity=id=>{
   $('date').value=a.date;
   $('title').value=a.title;
   $('type').value=a.type;
-  $('branch').value=a.branch;
-  updateDoctors(a.doctor);
+  let depValue=a.branch;
+  if(!departments.some(d=>d.id===depValue)){
+    const foundDep=departments.find(d=>d.name===a.branch || d.name===a.branchName);
+    depValue=foundDep?.id || '';
+  }
+  $('branch').value=depValue;
+
+  let docValue=a.doctor;
+  if(!doctors.some(d=>d.id===docValue)){
+    const foundDoc=doctors.find(d=>d.name===a.doctor || d.name===a.doctorName);
+    docValue=foundDoc?.id || '';
+  }
+  updateDoctors(docValue);
   $('platform').value=a.platform||'';
   $('views').value=a.views||0;
   $('reach').value=a.reach||0;
@@ -283,7 +345,7 @@ function generateReport(){
     <h3>Faaliyetler</h3>
     ${rows.map(a=>`
       <p><b>${esc(a.date)} – ${esc(a.title)}</b><br>
-      ${a.branch?esc(a.branch):''}${a.doctor?' – '+esc(a.doctor):''}
+      ${a.branch||a.branchName?esc(a.branchName || departmentNameById(a.branch) || a.branch):''}${a.doctor||a.doctorName?' – '+esc(a.doctorName || doctorNameById(a.doctor) || a.doctor):''}
       ${a.type?'<br><i>'+esc(a.type)+(a.platform?' / '+esc(a.platform):'')+'</i>':''}
       ${a.note?'<br>'+esc(a.note):''}</p>`).join('') || '<p>Bu ay için kayıt bulunmuyor.</p>'}
   `;
@@ -295,7 +357,7 @@ $('searchInput').addEventListener('input',renderRecords);
 $('printBtn').onclick=()=>window.print();
 
 $('exportBtn').onclick=()=>{
-  const payload={version:'1.1',activities,definitions:defs};
+  const payload={version:'2.1',activities,departments,doctors};
   const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
   const a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
@@ -313,15 +375,126 @@ $('importFile').addEventListener('change',async e=>{
     }else{
       if(!Array.isArray(data.activities))throw new Error();
       activities=data.activities;
-      if(data.definitions) defs=data.definitions;
+      if(Array.isArray(data.departments)) departments=data.departments;
+      if(Array.isArray(data.doctors)) doctors=data.doctors;
     }
     save();
-    localStorage.setItem(DEFKEY,JSON.stringify(defs));
+    saveMasterLocal();
     populateDefs(); renderAll();
     alert('Yedek geri yüklendi.');
   }catch{alert('Geçersiz yedek dosyası.');}
 });
 
+
+
+const departmentForm=$('departmentForm');
+if(departmentForm){
+  departmentForm.addEventListener('submit',async e=>{
+    e.preventDefault();
+    const name=$('departmentName').value.trim();
+    if(!name)return;
+    if(departments.some(d=>d.name.toLocaleLowerCase('tr')===name.toLocaleLowerCase('tr'))){
+      alert('Bu bölüm zaten tanımlı.');
+      return;
+    }
+    const dep={id:crypto.randomUUID(),name};
+    departments.push(dep);
+    saveMasterLocal();
+    populateDefs();
+    departmentForm.reset();
+    if(window.medikentCloud?.enabled){
+      try{await window.medikentCloud.saveDepartment(dep);}
+      catch(err){console.error(err);alert("Bölüm yerelde kaydedildi ancak Firebase'e gönderilemedi.");}
+    }
+  });
+}
+
+const doctorForm=$('doctorForm');
+if(doctorForm){
+  doctorForm.addEventListener('submit',async e=>{
+    e.preventDefault();
+    const departmentId=$('doctorDepartment').value;
+    const name=$('doctorName').value.trim();
+    if(!departmentId||!name)return;
+    if(doctors.some(d=>d.name.toLocaleLowerCase('tr')===name.toLocaleLowerCase('tr'))){
+      alert('Bu doktor zaten tanımlı.');
+      return;
+    }
+    const doctor={id:crypto.randomUUID(),name,departmentId,active:true};
+    doctors.push(doctor);
+    saveMasterLocal();
+    populateDefs();
+    doctorForm.reset();
+    if(window.medikentCloud?.enabled){
+      try{await window.medikentCloud.saveDoctor(doctor);}
+      catch(err){console.error(err);alert("Doktor yerelde kaydedildi ancak Firebase'e gönderilemedi.");}
+    }
+  });
+}
+
+window.renameDepartment=async id=>{
+  const dep=departments.find(d=>d.id===id); if(!dep)return;
+  const name=prompt('Bölüm adını düzenle:',dep.name);
+  if(!name||!name.trim())return;
+  dep.name=name.trim();
+  saveMasterLocal(); populateDefs(); renderAll();
+  if(window.medikentCloud?.enabled){
+    try{await window.medikentCloud.saveDepartment(dep);}
+    catch(err){console.error(err);alert("Bölüm güncellendi ancak Firebase'e gönderilemedi.");}
+  }
+};
+
+window.editDoctor=async id=>{
+  const d=doctors.find(x=>x.id===id); if(!d)return;
+  const name=prompt('Doktor adını düzenle:',d.name);
+  if(!name||!name.trim())return;
+  d.name=name.trim();
+  saveMasterLocal(); populateDefs(); renderAll();
+  if(window.medikentCloud?.enabled){
+    try{await window.medikentCloud.saveDoctor(d);}
+    catch(err){console.error(err);alert("Doktor güncellendi ancak Firebase'e gönderilemedi.");}
+  }
+};
+
+window.toggleDoctor=async id=>{
+  const d=doctors.find(x=>x.id===id); if(!d)return;
+  d.active=d.active===false?true:false;
+  saveMasterLocal(); populateDefs(); renderAll();
+  if(window.medikentCloud?.enabled){
+    try{await window.medikentCloud.saveDoctor(d);}
+    catch(err){console.error(err);alert("Doktor durumu değişti ancak Firebase'e gönderilemedi.");}
+  }
+};
+
+async function loadMasterCloud(){
+  if(!window.medikentCloud?.enabled)return;
+  try{
+    const [cloudDeps,cloudDocs]=await Promise.all([
+      window.medikentCloud.loadDepartments(),
+      window.medikentCloud.loadDoctors()
+    ]);
+
+    if(Array.isArray(cloudDeps)&&cloudDeps.length){
+      departments=cloudDeps;
+    }else{
+      for(const dep of departments) await window.medikentCloud.saveDepartment(dep);
+    }
+
+    if(Array.isArray(cloudDocs)&&cloudDocs.length){
+      doctors=cloudDocs;
+    }else{
+      for(const d of doctors) await window.medikentCloud.saveDoctor(d);
+    }
+
+    saveMasterLocal();
+    populateDefs();
+    renderAll();
+  }catch(err){
+    console.error(err);
+    alert("Bölüm/Doktor tanımları Firebase'den alınamadı: "+(err.message||err));
+  }
+}
+window.addEventListener("medikent-cloud-ready",loadMasterCloud);
 
 const cloudUploadBtn = document.getElementById("cloudUploadBtn");
 if(cloudUploadBtn){

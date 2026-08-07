@@ -42,7 +42,11 @@ window.medikentCloud = {
   async loadActivities(){ return []; },
   async saveActivity(){},
   async deleteActivity(){},
-  async uploadActivities(){ return 0; }
+  async uploadActivities(){ return 0; },
+  async loadDepartments(){ return []; },
+  async saveDepartment(){},
+  async loadDoctors(){ return []; },
+  async saveDoctor(){}
 };
 
 googleLoginBtn.addEventListener("click", async () => {
@@ -106,6 +110,32 @@ onAuthStateChanged(auth, async (user) => {
       count++;
     }
     return count;
+  };
+
+  window.medikentCloud.loadDepartments = async () => {
+    const snap = await getDocs(collection(db, "departments"));
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  };
+
+  window.medikentCloud.saveDepartment = async (department) => {
+    await setDoc(doc(db, "departments", department.id), {
+      ...department,
+      updatedAt: new Date().toISOString(),
+      updatedByUid: user.uid
+    }, { merge: true });
+  };
+
+  window.medikentCloud.loadDoctors = async () => {
+    const snap = await getDocs(collection(db, "doctors"));
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  };
+
+  window.medikentCloud.saveDoctor = async (doctor) => {
+    await setDoc(doc(db, "doctors", doctor.id), {
+      ...doctor,
+      updatedAt: new Date().toISOString(),
+      updatedByUid: user.uid
+    }, { merge: true });
   };
 
   window.dispatchEvent(new CustomEvent("medikent-cloud-ready"));

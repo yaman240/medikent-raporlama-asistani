@@ -18,7 +18,7 @@
         <span id="userName"></span>
         <button id="logoutBtn" class="secondary hidden">Çıkış</button>
       </div>
-      <span class="version">v2.0</span>
+      <span class="version">v2.1</span>
       <button id="printBtn" class="secondary">Yazdır</button>
     </div>
   </header>
@@ -82,11 +82,11 @@
               </label>
 
               <label>Branş
-                <select id="branch"></select>
+                <select id="branch" required></select>
               </label>
 
               <label>Doktor / Sorumlu
-                <select id="doctor"></select>
+                <select id="doctor" required></select>
               </label>
 
               <label>Platform / Kurum<input type="text" id="platform" placeholder="Instagram, Facebook, ajans..."></label>
@@ -147,10 +147,33 @@
       </section>
 
       <section id="settings" class="view">
-        <div class="panel">
-          <h2>Tanımlar</h2>
-          <p class="muted">Şimdilik temel branş ve doktor tanımları hazır geliyor. Bir sonraki sürümde bu ekranı tamamen düzenlenebilir yapacağız.</p>
-          <div id="definitionsList"></div>
+        <div class="settings-grid">
+          <div class="panel">
+            <h2>Bölümler</h2>
+            <form id="departmentForm" class="inline-form">
+              <input type="text" id="departmentName" placeholder="Yeni bölüm adı" required>
+              <button type="submit">Bölüm Ekle</button>
+            </form>
+            <div id="departmentList" class="manage-list"></div>
+          </div>
+
+          <div class="panel">
+            <h2>Doktorlar</h2>
+            <form id="doctorForm">
+              <div class="grid">
+                <label>Bölüm
+                  <select id="doctorDepartment" required></select>
+                </label>
+                <label>Doktor Adı
+                  <input type="text" id="doctorName" placeholder="Örn. Uzm. Dr. Gökhan Gözün" required>
+                </label>
+              </div>
+              <div class="actions">
+                <button type="submit">Doktor Ekle</button>
+              </div>
+            </form>
+            <div id="doctorList" class="manage-list"></div>
+          </div>
         </div>
       </section>
 
