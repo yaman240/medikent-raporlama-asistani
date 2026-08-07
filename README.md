@@ -1,6 +1,9 @@
-# Medikent Raporlama Asistanı v2.3
+# Medikent Raporlama Asistanı v2.5
 
-## Hazır gelen bölümler
+## Kritik düzeltme
+Tanımlar ekranındaki bölümler artık Firebase yanıtını beklemeden uygulama açılır açılmaz görünür.
+
+Hazır gelen 14 bölüm:
 - Çocuk Sağlığı ve Hastalıkları
 - Çocuk Cerrahisi
 - Kadın Hastalıkları ve Doğum
@@ -16,6 +19,4 @@
 - Algoloji
 - Plastik, Rekonstrüktif ve Estetik Cerrahi
 
-Bu bölümler başlangıçta otomatik gelir.
-Mevcut kullanıcıların tarayıcı verileri varsa eksik hazır bölümler otomatik eklenir.
-Bölüm ve doktorlar yine Tanımlar ekranından düzenlenebilir.
+Firebase'de eski veya eksik tanımlar olsa bile bu 14 bölüm yerelde görünür ve eksik olanlar Firebase'e eklenir.
