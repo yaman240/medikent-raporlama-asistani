@@ -12,7 +12,10 @@
       <h1>Medikent Raporlama Asistanı</h1>
       <p>Faaliyet • İstatistik • Otomatik Rapor</p>
     </div>
-    <button id="printBtn" class="secondary">Yazdır</button>
+    <div class="top-actions">
+      <span class="version">v1.1</span>
+      <button id="printBtn" class="secondary">Yazdır</button>
+    </div>
   </header>
 
   <main class="layout">
@@ -21,6 +24,7 @@
       <button class="nav" data-view="new">➕ Yeni Faaliyet</button>
       <button class="nav" data-view="records">📅 Kayıtlar</button>
       <button class="nav" data-view="report">📄 Rapor Oluştur</button>
+      <button class="nav" data-view="settings">⚙️ Tanımlar</button>
       <button class="nav" data-view="backup">💾 Yedekleme</button>
     </aside>
 
@@ -39,43 +43,71 @@
           <div class="card"><span>Eğitim</span><strong id="statTraining">0</strong></div>
           <div class="card"><span>Basın / Haber</span><strong id="statPress">0</strong></div>
           <div class="card"><span>Görüntülenme</span><strong id="statViews">0</strong></div>
+          <div class="card"><span>Erişim</span><strong id="statReach">0</strong></div>
+          <div class="card"><span>Etkileşim</span><strong id="statEngagement">0</strong></div>
           <div class="card"><span>Katılımcı</span><strong id="statParticipants">0</strong></div>
         </div>
 
-        <div class="panel">
-          <h2>Aylık Özet</h2>
-          <div id="monthlySummary" class="report-text"></div>
+        <div class="dashboard-grid">
+          <div class="panel">
+            <h2>Aylık Özet</h2>
+            <div id="monthlySummary" class="report-text"></div>
+          </div>
+          <div class="panel">
+            <h2>Faaliyet Dağılımı</h2>
+            <div id="typeBars"></div>
+          </div>
         </div>
       </section>
 
       <section id="new" class="view">
         <div class="panel">
-          <h2>Yeni Faaliyet</h2>
+          <div class="panel-head">
+            <h2 id="formTitle">Yeni Faaliyet</h2>
+            <span id="editBadge" class="badge hidden">Düzenleme</span>
+          </div>
           <form id="activityForm">
+            <input type="hidden" id="editingId">
             <div class="grid">
               <label>Tarih<input type="date" id="date" required></label>
               <label>Faaliyet Başlığı<input type="text" id="title" required placeholder="Örn. Fenilketonüri Bilgilendirme Videosu"></label>
-              <label>Branş<input type="text" id="branch" placeholder="Örn. Çocuk Sağlığı ve Hastalıkları"></label>
-              <label>Doktor / Sorumlu<input type="text" id="doctor" placeholder="Örn. Uzm. Dr. ..."></label>
+
               <label>Faaliyet Türü
-                <select id="type" required>
-                  <option value="Sosyal Medya">Sosyal Medya</option>
-                  <option value="Eğitim">Eğitim</option>
-                  <option value="Basın / Haber">Basın / Haber</option>
-                  <option value="Etkinlik">Etkinlik</option>
-                  <option value="Diğer">Diğer</option>
-                </select>
+                <select id="type" required></select>
               </label>
+
+              <label>Branş
+                <select id="branch"></select>
+              </label>
+
+              <label>Doktor / Sorumlu
+                <select id="doctor"></select>
+              </label>
+
               <label>Platform / Kurum<input type="text" id="platform" placeholder="Instagram, Facebook, ajans..."></label>
-              <label>Görüntülenme<input type="number" min="0" id="views" value="0"></label>
-              <label>Erişim<input type="number" min="0" id="reach" value="0"></label>
-              <label>Beğeni<input type="number" min="0" id="likes" value="0"></label>
-              <label>Etkileşim<input type="number" min="0" id="engagement" value="0"></label>
-              <label>Katılımcı Sayısı<input type="number" min="0" id="participants" value="0"></label>
             </div>
+
+            <div id="socialFields" class="conditional-box">
+              <h3>Sosyal Medya Verileri</h3>
+              <div class="grid">
+                <label>Görüntülenme<input type="number" min="0" id="views" value="0"></label>
+                <label>Erişim<input type="number" min="0" id="reach" value="0"></label>
+                <label>Beğeni<input type="number" min="0" id="likes" value="0"></label>
+                <label>Etkileşim<input type="number" min="0" id="engagement" value="0"></label>
+              </div>
+            </div>
+
+            <div id="participantFields" class="conditional-box">
+              <h3>Katılım Bilgisi</h3>
+              <div class="grid">
+                <label>Katılımcı Sayısı<input type="number" min="0" id="participants" value="0"></label>
+              </div>
+            </div>
+
             <label>Not<textarea id="note" rows="4"></textarea></label>
             <div class="actions">
-              <button type="submit">Kaydet</button>
+              <button type="submit" id="saveBtn">Kaydet</button>
+              <button type="button" id="cancelEdit" class="secondary hidden">Düzenlemeyi İptal Et</button>
               <button type="reset" class="secondary">Temizle</button>
             </div>
           </form>
@@ -91,7 +123,7 @@
           <div class="table-wrap">
             <table>
               <thead>
-                <tr><th>Tarih</th><th>Faaliyet</th><th>Tür</th><th>Branş</th><th>Doktor</th><th>Sonuç</th><th></th></tr>
+                <tr><th>Tarih</th><th>Faaliyet</th><th>Tür</th><th>Branş</th><th>Doktor</th><th>Sonuç</th><th>İşlem</th></tr>
               </thead>
               <tbody id="recordsBody"></tbody>
             </table>
@@ -106,6 +138,14 @@
             <button id="generateReport">Raporu Oluştur</button>
           </div>
           <div id="reportOutput" class="report-paper"></div>
+        </div>
+      </section>
+
+      <section id="settings" class="view">
+        <div class="panel">
+          <h2>Tanımlar</h2>
+          <p class="muted">Şimdilik temel branş ve doktor tanımları hazır geliyor. Bir sonraki sürümde bu ekranı tamamen düzenlenebilir yapacağız.</p>
+          <div id="definitionsList"></div>
         </div>
       </section>
 

@@ -1,24 +1,24 @@
-# Medikent Raporlama Asistanı v1
+# Medikent Raporlama Asistanı v1.1
 
-İlk çalışan prototip.
+## Yeni özellikler
+- Hazır faaliyet türleri
+- Branş seçimi
+- Branşa göre doktor seçimi
+- Kayıt düzenleme
+- Geliştirilmiş aylık istatistik
+- Faaliyet dağılım grafiği
+- Geliştirilmiş rapor
+- Tanımlar ekranı
+- JSON yedekleme
 
-## Özellikler
-- Yeni faaliyet kaydı
-- Faaliyet türleri: Sosyal Medya, Eğitim, Basın/Haber, Etkinlik, Diğer
-- Aylık istatistik
-- Otomatik aylık rapor
-- Yazdırma
-- JSON yedek alma / geri yükleme
-- Telefon uyumlu arayüz
-- Veriler tarayıcı localStorage alanında tutulur
-
-## Kurulum
-GitHub deposuna şu dosyaları yükleyin:
+## GitHub güncelleme
+Eski repository içindeki:
 - index.html
-- style.css
 - app.js
+- style.css
+- README.md
 
-GitHub Pages açıldığında uygulama çalışır.
+dosyalarını bu sürümdekilerle değiştirin.
 
-## Sonraki sürüm önerisi
-Firebase/Firestore ile çoklu cihaz, kullanıcı girişi, yetkilendirme ve merkezi veri.
+Veriler tarayıcı localStorage alanında tutulmaya devam eder.
+Bir sonraki sürüm: Firebase/Firestore + kullanıcı girişi + çoklu cihaz.
