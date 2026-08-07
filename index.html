@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Medikent Raporlama Asistanı</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <h1>Medikent Raporlama Asistanı</h1>
+      <p>Faaliyet • İstatistik • Otomatik Rapor</p>
+    </div>
+    <button id="printBtn" class="secondary">Yazdır</button>
+  </header>
+
+  <main class="layout">
+    <aside class="sidebar">
+      <button class="nav active" data-view="dashboard">🏠 Ana Sayfa</button>
+      <button class="nav" data-view="new">➕ Yeni Faaliyet</button>
+      <button class="nav" data-view="records">📅 Kayıtlar</button>
+      <button class="nav" data-view="report">📄 Rapor Oluştur</button>
+      <button class="nav" data-view="backup">💾 Yedekleme</button>
+    </aside>
+
+    <section class="content">
+      <section id="dashboard" class="view active">
+        <div class="toolbar">
+          <label>Ay
+            <input type="month" id="monthFilter">
+          </label>
+          <button id="refreshStats">Güncelle</button>
+        </div>
+
+        <div class="cards">
+          <div class="card"><span>Toplam Faaliyet</span><strong id="statTotal">0</strong></div>
+          <div class="card"><span>Sosyal Medya</span><strong id="statSocial">0</strong></div>
+          <div class="card"><span>Eğitim</span><strong id="statTraining">0</strong></div>
+          <div class="card"><span>Basın / Haber</span><strong id="statPress">0</strong></div>
+          <div class="card"><span>Görüntülenme</span><strong id="statViews">0</strong></div>
+          <div class="card"><span>Katılımcı</span><strong id="statParticipants">0</strong></div>
+        </div>
+
+        <div class="panel">
+          <h2>Aylık Özet</h2>
+          <div id="monthlySummary" class="report-text"></div>
+        </div>
+      </section>
+
+      <section id="new" class="view">
+        <div class="panel">
+          <h2>Yeni Faaliyet</h2>
+          <form id="activityForm">
+            <div class="grid">
+              <label>Tarih<input type="date" id="date" required></label>
+              <label>Faaliyet Başlığı<input type="text" id="title" required placeholder="Örn. Fenilketonüri Bilgilendirme Videosu"></label>
+              <label>Branş<input type="text" id="branch" placeholder="Örn. Çocuk Sağlığı ve Hastalıkları"></label>
+              <label>Doktor / Sorumlu<input type="text" id="doctor" placeholder="Örn. Uzm. Dr. ..."></label>
+              <label>Faaliyet Türü
+                <select id="type" required>
+                  <option value="Sosyal Medya">Sosyal Medya</option>
+                  <option value="Eğitim">Eğitim</option>
+                  <option value="Basın / Haber">Basın / Haber</option>
+                  <option value="Etkinlik">Etkinlik</option>
+                  <option value="Diğer">Diğer</option>
+                </select>
+              </label>
+              <label>Platform / Kurum<input type="text" id="platform" placeholder="Instagram, Facebook, ajans..."></label>
+              <label>Görüntülenme<input type="number" min="0" id="views" value="0"></label>
+              <label>Erişim<input type="number" min="0" id="reach" value="0"></label>
+              <label>Beğeni<input type="number" min="0" id="likes" value="0"></label>
+              <label>Etkileşim<input type="number" min="0" id="engagement" value="0"></label>
+              <label>Katılımcı Sayısı<input type="number" min="0" id="participants" value="0"></label>
+            </div>
+            <label>Not<textarea id="note" rows="4"></textarea></label>
+            <div class="actions">
+              <button type="submit">Kaydet</button>
+              <button type="reset" class="secondary">Temizle</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <section id="records" class="view">
+        <div class="panel">
+          <div class="panel-head">
+            <h2>Kayıtlar</h2>
+            <input type="search" id="searchInput" placeholder="Ara...">
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Tarih</th><th>Faaliyet</th><th>Tür</th><th>Branş</th><th>Doktor</th><th>Sonuç</th><th></th></tr>
+              </thead>
+              <tbody id="recordsBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="report" class="view">
+        <div class="panel">
+          <div class="toolbar">
+            <label>Rapor Ayı<input type="month" id="reportMonth"></label>
+            <button id="generateReport">Raporu Oluştur</button>
+          </div>
+          <div id="reportOutput" class="report-paper"></div>
+        </div>
+      </section>
+
+      <section id="backup" class="view">
+        <div class="panel">
+          <h2>Yedekleme</h2>
+          <p>Kayıtları JSON dosyası olarak dışarı alabilir veya daha önce alınmış yedeği geri yükleyebilirsin.</p>
+          <div class="actions">
+            <button id="exportBtn">Yedeği İndir</button>
+            <label class="file-btn">Yedeği Geri Yükle<input type="file" id="importFile" accept=".json"></label>
+          </div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
