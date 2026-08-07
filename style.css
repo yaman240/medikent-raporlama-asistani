@@ -48,3 +48,4 @@ th,td{padding:10px;border-bottom:1px solid #e5e7eb;text-align:left;font-size:13p
 .user-box{display:flex;align-items:center;gap:8px;font-size:12px}
 .sync-badge{background:#e8f5e9;color:#256029;padding:6px 9px;border-radius:999px;font-size:12px;font-weight:700}
 .sync-badge.offline{background:#fff3cd;color:#7a5d00}
+.hidden{display:none!important}

@@ -1,32 +1,31 @@
-# Medikent Raporlama Asistanı v1.3
+# Medikent Raporlama Asistanı v2.0
 
-Bu sürüm Firebase projesine gerçek olarak bağlanmıştır.
+Temiz Firebase sürümü.
 
 ## Özellikler
-- Google ile kullanıcı girişi
+- Google ile giriş
 - Cloud Firestore ortak kayıt sistemi
-- Bilgisayar ve telefonda aynı kayıtların görünmesi
-- Kayıt ekleme / düzenleme / silme Firestore ile senkron
-- Mevcut localStorage kayıtlarını tek tuşla Firebase'e aktarma
-- JSON yedek alma / geri yükleme
-- v1.1 arayüz ve raporlama özelliklerinin tamamı korunur
+- Bilgisayar ve telefonda aynı veriler
+- Kayıt ekleme / düzenleme / silme senkronu
+- Yerel kayıtları tek tuşla buluta aktarma
+- JSON yedekleme
+- Aylık istatistik ve otomatik rapor
+- v1.1 özellikleri korunur
 
 ## GitHub'a yüklenecek dosyalar
 - index.html
-- style.css
 - app.js
+- style.css
 - firebase-app.js
 - README.md
 
-## Firebase Authentication için önemli
-Firebase Console > Authentication > Settings > Authorized domains
-bölümünde şu alanın bulunması gerekir:
-
+## Firebase Authentication
+Authorized domains / Yetkilendirilmiş alanlar bölümünde:
 yaman240.github.io
 
-Bulunmuyorsa ekleyin.
+bulunmalıdır.
 
-## Firestore güvenlik kuralı (geliştirme aşaması)
+## Firestore kuralı
 rules_version = '2';
 
 service cloud.firestore {
@@ -36,6 +35,3 @@ service cloud.firestore {
     }
   }
 }
-
-Bu kural yalnızca oturum açmış kullanıcıların veriye erişmesini sağlar.
-İlerleyen sürümde admin/personel/görüntüleyici rolleriyle daraltılacaktır.
