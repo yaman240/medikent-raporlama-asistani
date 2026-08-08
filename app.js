@@ -76,6 +76,55 @@ function esc(s=''){ return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&l
 const $=id=>document.getElementById(id);
 let selectedPhotoFiles = [];
 let retainedExistingPhotos = [];
+const QUICK_PREFS_KEY='medikent_quick_prefs_v43';
+let saveAndGoToReport=false;
+
+const QUICK_TEMPLATES={
+  'Gebe Okulu':{type:'Gebe Okulu',reportTopic:'Gebe Okulu',platform:'',focus:'participant'},
+  'Doktor Videosu':{type:'Video',reportTopic:'Doktor Bilgilendirme',platform:'Instagram',focus:'social'},
+  'Basın Haberi':{type:'Basın / Haber',reportTopic:'Basın / Haber',platform:'',focus:'social'},
+  'Sağlık Taraması':{type:'Sağlık Taraması',reportTopic:'Sağlık Taraması',platform:'',focus:'participant'},
+  'Farkındalık Etkinliği':{type:'Farkındalık Etkinliği',reportTopic:'Farkındalık Etkinliği',platform:'',focus:'participant'}
+};
+
+function loadQuickPrefs(){
+  try{return JSON.parse(localStorage.getItem(QUICK_PREFS_KEY)||'{}');}
+  catch{return {};}
+}
+
+function saveQuickPrefs(activity){
+  localStorage.setItem(QUICK_PREFS_KEY,JSON.stringify({
+    branch:activity.branch||'',
+    doctor:activity.doctor||'',
+    type:activity.type||'',
+    platform:activity.platform||'',
+    reportTopic:activity.reportTopic||''
+  }));
+}
+
+function applyLastUsed(){
+  const prefs=loadQuickPrefs();
+  if(prefs.branch && departments.some(d=>d.id===prefs.branch)){
+    $('branch').value=prefs.branch;
+    updateDoctors(prefs.doctor||'');
+  }
+  if(prefs.type && [...$('type').options].some(o=>o.value===prefs.type)) $('type').value=prefs.type;
+  if(prefs.platform) $('platform').value=prefs.platform;
+  if(prefs.reportTopic) $('reportTopic').value=prefs.reportTopic;
+  toggleConditionalFields();
+}
+
+function applyQuickTemplate(name){
+  const t=QUICK_TEMPLATES[name];
+  if(!t)return;
+  if([...$('type').options].some(o=>o.value===t.type)) $('type').value=t.type;
+  $('reportTopic').value=t.reportTopic||'';
+  $('platform').value=t.platform||'';
+  toggleConditionalFields();
+  if(t.focus==='participant') $('participants')?.focus();
+  else $('views')?.focus();
+}
+
 
 async function getLocalPhotos(activityId){
   if(!activityId || !window.medikentCloud?.enabled) return [];
@@ -112,6 +161,15 @@ function populateDefs(){
 
   updateDoctors();
   renderMasterLists();
+
+  if(!$('editingId')?.value){
+    const prefs=loadQuickPrefs();
+    if(prefs.branch && departments.some(d=>d.id===prefs.branch)){
+      $('branch').value=prefs.branch;
+      updateDoctors(prefs.doctor||'');
+    }
+  }
+  toggleConditionalFields();
 }
 
 function departmentNameById(id){
@@ -210,11 +268,27 @@ function renderMasterLists(){
 }
 
 function toggleConditionalFields(){
-  const t=$('type').value;
-  const social=['Sosyal Medya','Video','Doktor Röportajı','TV Programı','Radyo'].includes(t);
-  const participant=['Eğitim','Gebe Okulu','Sağlık Taraması','Farkındalık Etkinliği','Etkinlik'].includes(t);
-  $('socialFields').classList.toggle('hidden',!social);
-  $('participantFields').classList.toggle('hidden',!participant);
+  const type=$('type')?.value||'';
+
+  const socialTypes=new Set(['Sosyal Medya','Video','Basın / Haber','Doktor Röportajı','TV Programı','Radyo']);
+  const participantTypes=new Set(['Eğitim','Gebe Okulu','Sağlık Taraması','Farkındalık Etkinliği','Etkinlik']);
+
+  const social=$('socialFields');
+  const participant=$('participantFields');
+  const platforms=[...document.querySelectorAll('.smart-platform')];
+
+  const showSocial=socialTypes.has(type);
+  const showParticipant=participantTypes.has(type);
+
+  social?.classList.toggle('smart-hidden',!showSocial);
+  participant?.classList.toggle('smart-hidden',!showParticipant);
+  platforms.forEach(el=>el.classList.toggle('smart-hidden',!showSocial));
+
+  if(type==='Diğer'){
+    social?.classList.remove('smart-hidden');
+    participant?.classList.remove('smart-hidden');
+    platforms.forEach(el=>el.classList.remove('smart-hidden'));
+  }
 }
 
 document.querySelectorAll('.nav').forEach(btn=>btn.addEventListener('click',()=>{
@@ -285,6 +359,21 @@ if(photoFilesInput){
   });
 }
 
+
+document.querySelectorAll('.template-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>applyQuickTemplate(btn.dataset.template));
+});
+
+$('reuseLastBtn')?.addEventListener('click',()=>{
+  applyLastUsed();
+  $('title')?.focus();
+});
+
+$('saveAndReportBtn')?.addEventListener('click',()=>{
+  saveAndGoToReport=true;
+  $('activityForm').requestSubmit();
+});
+
 $('activityForm').addEventListener('submit',async e=>{
   e.preventDefault();
 
@@ -339,9 +428,22 @@ $('activityForm').addEventListener('submit',async e=>{
       reportMonth.value=savedMonth;
     }
 
+    saveQuickPrefs(draft);
+    const goReport=saveAndGoToReport;
+    saveAndGoToReport=false;
+
     resetForm();
     renderAll();
-    alert(editingId?'Kayıt güncellendi.':'Faaliyet Supabase’e kaydedildi.');
+
+    if(goReport){
+      const savedMonth=monthOf(draft.date);
+      if(savedMonth) $('reportMonth').value=savedMonth;
+      if(draft.reportTopic) $('reportTopicFilter').value=draft.reportTopic;
+      document.querySelector('[data-view="report"]')?.click();
+      await generateReport();
+    }else{
+      alert(editingId?'Kayıt güncellendi.':'Faaliyet Supabase’e kaydedildi.');
+    }
   }catch(err){
     console.error(err);
     alert("Kayıt tamamlanamadı: "+(err.message||err));
@@ -359,6 +461,7 @@ function resetForm(){
   $('cancelEdit').classList.add('hidden');
   populateDefs();
   toggleConditionalFields();
+  applyLastUsed();
 }
 
 $('cancelEdit').onclick=resetForm;
@@ -452,6 +555,37 @@ window.editActivity=id=>{
   $('editBadge').classList.remove('hidden');
   $('cancelEdit').classList.remove('hidden');
   toggleConditionalFields();
+};
+
+window.duplicateActivity=id=>{
+  const a=activities.find(x=>x.id===id);
+  if(!a)return;
+
+  resetForm();
+  $('editingId').value='';
+  $('date').value=new Date().toISOString().slice(0,10);
+  $('title').value=a.title||'';
+  $('reportTopic').value=a.reportTopic||'';
+  $('branch').value=a.branch||'';
+  updateDoctors(a.doctor||'');
+  $('type').value=a.type||'';
+  $('platform').value=a.platform||'';
+  $('socialLink').value=a.socialLink||'';
+  $('views').value=0;
+  $('reach').value=0;
+  $('likes').value=0;
+  $('engagement').value=0;
+  $('participants').value=0;
+  $('note').value=a.note||'';
+
+  selectedPhotoFiles=[];
+  retainedExistingPhotos=[];
+  if($('photoPreview')) $('photoPreview').innerHTML='';
+  if($('existingPhotos')) $('existingPhotos').innerHTML='';
+
+  toggleConditionalFields();
+  document.querySelector('[data-view="new"]')?.click();
+  $('title')?.focus();
 };
 
 window.removeActivity=async id=>{

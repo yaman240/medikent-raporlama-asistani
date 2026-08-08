@@ -18,7 +18,7 @@
         <span id="userName"></span>
         <button id="logoutBtn" class="secondary hidden">Çıkış</button>
       </div>
-      <span class="version">v4.2</span>
+      <span class="version">v4.3</span>
       <button id="printBtn" class="secondary">Yazdır</button>
     </div>
   </header>
@@ -71,7 +71,24 @@
             <h2 id="formTitle">Yeni Faaliyet</h2>
             <span id="editBadge" class="badge hidden">Düzenleme</span>
           </div>
-          <form id="activityForm">
+          <div class="quick-templates panel-soft">
+              <div class="quick-templates-head">
+                <strong>Hızlı Şablonlar</strong>
+                <span class="muted">Tek tıkla faaliyet tipini hazırla</span>
+              </div>
+              <div class="template-buttons">
+                <button type="button" class="template-btn" data-template="Gebe Okulu">Gebe Okulu</button>
+                <button type="button" class="template-btn" data-template="Doktor Videosu">Doktor Videosu</button>
+                <button type="button" class="template-btn" data-template="Basın Haberi">Basın Haberi</button>
+                <button type="button" class="template-btn" data-template="Sağlık Taraması">Sağlık Taraması</button>
+                <button type="button" class="template-btn" data-template="Farkındalık Etkinliği">Farkındalık Etkinliği</button>
+              </div>
+              <div class="quick-actions">
+                <button type="button" id="reuseLastBtn" class="secondary">Son Kaydı Tekrar Kullan</button>
+              </div>
+            </div>
+
+            <form id="activityForm">
             <input type="hidden" id="editingId">
             <div class="grid">
               <label>Tarih<input type="date" id="date" required></label>
@@ -92,8 +109,8 @@
                 <select id="doctor" required></select>
               </label>
 
-              <label>Platform / Kurum<input type="text" id="platform" placeholder="Instagram, Facebook, ajans..."></label>
-              <label>Sosyal Medya / Haber Linki
+              <label class="smart-platform">Platform / Kurum<input type="text" id="platform" placeholder="Instagram, Facebook, ajans..."></label>
+              <label class="smart-platform">Sosyal Medya / Haber Linki
                 <input type="url" id="socialLink" placeholder="https://...">
               </label>
             </div>
@@ -126,6 +143,7 @@
             <label>Not<textarea id="note" rows="4"></textarea></label>
             <div class="actions">
               <button type="submit" id="saveBtn">Kaydet</button>
+              <button type="button" id="saveAndReportBtn" class="secondary">Kaydet & Rapora Git</button>
               <button type="button" id="cancelEdit" class="secondary hidden">Düzenlemeyi İptal Et</button>
               <button type="reset" class="secondary">Temizle</button>
             </div>

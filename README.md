@@ -1,17 +1,20 @@
-# Medikent Raporlama Asistanı v4.2 — PDF Fotoğraf Düzeltmesi
+# Medikent Raporlama Asistanı v4.3 — Hızlı Kayıt
 
-## Düzeltilen sorun
-Faaliyet fotoğrafı Supabase'den başarıyla geliyor ve düzenleme ekranında görünüyordu,
-ancak PDF oluşturulurken html2pdf/html2canvas fotoğraf yüklenmesini tamamlamadan
-çıktı üretmeye başlayabiliyordu.
+Bu sürüm günlük faaliyet girişini hızlandırır.
 
-## v4.2
-- Rapor önce tamamen oluşturulur.
-- Rapordaki bütün fotoğrafların yüklenmesi beklenir.
-- Görsellerin naturalWidth değeri kontrol edilir.
-- Sonra PDF oluşturulur.
-- Fotoğraf henüz hazır değilse boş PDF üretmek yerine kullanıcı uyarılır.
-- PDF'de görsel kalite ayarı yükseltilmiştir.
+## Yeni özellikler
+- Faaliyet türüne göre akıllı alan gösterimi
+- Hızlı şablonlar:
+  - Gebe Okulu
+  - Doktor Videosu
+  - Basın Haberi
+  - Sağlık Taraması
+  - Farkındalık Etkinliği
+- Son kullanılan bölüm/doktor/tür/platform/rapor konusunu hatırlama
+- Son Kaydı Tekrar Kullan
+- Kaydet & Rapora Git
+- Kayıtlar ekranında Tekrarla
+- Tekrarlanan kayıtta istatistikler ve fotoğraflar sıfırdan başlar
 
 ## GitHub'a yüklenecek dosyalar
 - index.html
