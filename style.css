@@ -128,3 +128,7 @@ th,td{padding:10px;border-bottom:1px solid #e5e7eb;text-align:left;font-size:13p
   .template-buttons{display:grid;grid-template-columns:1fr 1fr;width:100%}
   .template-btn{width:100%}
 }
+
+.manage-actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.small-btn.danger{background:#fff1f2;color:#be123c;border-color:#fecdd3}
+#templateList .manage-row{align-items:center}

@@ -1,36 +1,29 @@
-# Medikent Raporlama Asistanı v4.4
+# Medikent Raporlama Asistanı v4.5 — Şablon Yönetimi
 
-## Son Faaliyeti Tekrar Kullan düzeltmesi
+Şablonlar artık kodun içine sabit değildir. Supabase `activity_templates` tablosundan gelir.
 
-v4.3'te bu buton yalnızca son kullanılan bölüm/doktor/tür tercihlerini uyguluyordu.
-Bu yüzden kullanıcıya görünür bir işlem olmamış gibi hissedilebiliyordu.
+## Yönetici yapabilir
+- Yeni şablon ekleme
+- Şablon düzenleme
+- Aktif / pasif yapma
+- Şablon silme
 
-v4.4'te buton artık gerçek son faaliyeti yeni kayıt olarak hazırlar:
+Normal kullanıcılar yalnızca aktif şablonları kullanır.
 
-Kopyalananlar:
-- Faaliyet başlığı
-- Rapor konusu
-- Bölüm
-- Doktor
-- Faaliyet türü
-- Platform
-- Sosyal medya / haber linki
-- Not
+## Önemli: İlk kurulum
+GitHub dosyalarını yüklemeden/sonra Supabase SQL Editor'de paket içindeki
+`SUPABASE-v4.5-SABLONLAR.sql` dosyasının tamamını bir kez çalıştır.
 
-Sıfırlananlar:
-- Tarih bugünün tarihi olur
-- Görüntülenme
-- Erişim
-- Beğeni
-- Etkileşim
-- Katılımcı
-- Fotoğraflar
+Bu işlem:
+- activity_templates tablosunu oluşturur
+- RLS güvenlik kurallarını kurar
+- mevcut 5 şablonu başlangıç verisi olarak ekler
 
-Fotoğraflar bilinçli olarak kopyalanmaz.
-
-## GitHub'a yüklenecek dosyalar
+## GitHub'a yüklenecek uygulama dosyaları
 - index.html
 - app.js
 - style.css
 - supabase-app.js
 - README.md
+
+`SUPABASE-v4.5-SABLONLAR.sql` GitHub'a yüklemek zorunda değilsin; Supabase SQL Editor'de bir kez çalıştırman yeterlidir.

@@ -36,7 +36,10 @@ window.medikentCloud = {
   async saveDoctor(){},
   async listActivityPhotos(){ return []; },
   async uploadActivityPhotos(){ return []; },
-  async deletePhoto(){}
+  async deletePhoto(){},
+  async loadTemplates(){ return []; },
+  async saveTemplate(){},
+  async deleteTemplate(){}
 };
 
 function setLoginMessage(message){
@@ -294,6 +297,54 @@ async function activateUser(user){
 
   window.medikentCloud.deletePhoto = async path=>{
     const {error}=await supabase.storage.from(BUCKET).remove([path]);
+    if(error) throw error;
+  };
+
+
+  window.medikentCloud.loadTemplates = async ()=>{
+    const {data,error}=await supabase
+      .from("activity_templates")
+      .select("id,name,activity_type,report_topic,platform,active,sort_order")
+      .order("sort_order",{ascending:true})
+      .order("name",{ascending:true});
+    if(error) throw error;
+    return (data||[]).map(x=>({
+      id:x.id,
+      name:x.name,
+      type:x.activity_type,
+      reportTopic:x.report_topic||"",
+      platform:x.platform||"",
+      active:x.active!==false,
+      sortOrder:x.sort_order||0
+    }));
+  };
+
+  window.medikentCloud.saveTemplate = async template=>{
+    const payload={
+      name:template.name,
+      activity_type:template.type,
+      report_topic:template.reportTopic||null,
+      platform:template.platform||null,
+      active:template.active!==false,
+      sort_order:+template.sortOrder||0
+    };
+    let query;
+    if(template.id && /^[0-9a-f-]{36}$/i.test(template.id)){
+      query=supabase.from("activity_templates").update(payload).eq("id",template.id).select().single();
+    }else{
+      query=supabase.from("activity_templates").insert(payload).select().single();
+    }
+    const {data,error}=await query;
+    if(error) throw error;
+    return {
+      id:data.id,name:data.name,type:data.activity_type,
+      reportTopic:data.report_topic||"",platform:data.platform||"",
+      active:data.active!==false,sortOrder:data.sort_order||0
+    };
+  };
+
+  window.medikentCloud.deleteTemplate = async id=>{
+    const {error}=await supabase.from("activity_templates").delete().eq("id",id);
     if(error) throw error;
   };
 

@@ -18,7 +18,7 @@
         <span id="userName"></span>
         <button id="logoutBtn" class="secondary hidden">Çıkış</button>
       </div>
-      <span class="version">v4.4</span>
+      <span class="version">v4.5</span>
       <button id="printBtn" class="secondary">Yazdır</button>
     </div>
   </header>
@@ -76,13 +76,7 @@
                 <strong>Hızlı Şablonlar</strong>
                 <span class="muted">Tek tıkla faaliyet tipini hazırla</span>
               </div>
-              <div class="template-buttons">
-                <button type="button" class="template-btn" data-template="Gebe Okulu">Gebe Okulu</button>
-                <button type="button" class="template-btn" data-template="Doktor Videosu">Doktor Videosu</button>
-                <button type="button" class="template-btn" data-template="Basın Haberi">Basın Haberi</button>
-                <button type="button" class="template-btn" data-template="Sağlık Taraması">Sağlık Taraması</button>
-                <button type="button" class="template-btn" data-template="Farkındalık Etkinliği">Farkındalık Etkinliği</button>
-              </div>
+              <div id="quickTemplateButtons" class="template-buttons"></div>
               <div class="quick-actions">
                 <button type="button" id="reuseLastBtn" class="secondary">Son Faaliyeti Tekrar Kullan</button>
               </div>
@@ -224,7 +218,36 @@
             </form>
             <div id="doctorList" class="manage-list"></div>
           </div>
-        </div>
+        
+          <div class="panel">
+            <div class="panel-head">
+              <h2>Faaliyet Şablonları</h2>
+              <span class="muted">Yalnızca yönetici değiştirebilir</span>
+            </div>
+            <form id="templateForm">
+              <input type="hidden" id="templateEditingId">
+              <div class="grid">
+                <label>Şablon Adı
+                  <input type="text" id="templateName" placeholder="Örn. Gebe Okulu" required>
+                </label>
+                <label>Faaliyet Türü
+                  <select id="templateType" required></select>
+                </label>
+                <label>Rapor Konusu
+                  <input type="text" id="templateReportTopic" placeholder="Örn. Gebe Okulu">
+                </label>
+                <label>Varsayılan Platform
+                  <input type="text" id="templatePlatform" placeholder="Örn. Instagram">
+                </label>
+              </div>
+              <div class="actions">
+                <button type="submit" id="templateSaveBtn">Şablon Ekle</button>
+                <button type="button" id="templateCancelBtn" class="secondary hidden">İptal</button>
+              </div>
+            </form>
+            <div id="templateList" class="manage-list"></div>
+          </div>
+</div>
       </section>
 
       <section id="backup" class="view">

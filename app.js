@@ -79,13 +79,15 @@ let retainedExistingPhotos = [];
 const QUICK_PREFS_KEY='medikent_quick_prefs_v43';
 let saveAndGoToReport=false;
 
-const QUICK_TEMPLATES={
-  'Gebe Okulu':{type:'Gebe Okulu',reportTopic:'Gebe Okulu',platform:'',focus:'participant'},
-  'Doktor Videosu':{type:'Video',reportTopic:'Doktor Bilgilendirme',platform:'Instagram',focus:'social'},
-  'Basın Haberi':{type:'Basın / Haber',reportTopic:'Basın / Haber',platform:'',focus:'social'},
-  'Sağlık Taraması':{type:'Sağlık Taraması',reportTopic:'Sağlık Taraması',platform:'',focus:'participant'},
-  'Farkındalık Etkinliği':{type:'Farkındalık Etkinliği',reportTopic:'Farkındalık Etkinliği',platform:'',focus:'participant'}
-};
+let activityTemplates=[];
+
+const DEFAULT_TEMPLATES=[
+  {name:'Gebe Okulu',type:'Gebe Okulu',reportTopic:'Gebe Okulu',platform:'',active:true,sortOrder:10},
+  {name:'Doktor Videosu',type:'Video',reportTopic:'Doktor Bilgilendirme',platform:'Instagram',active:true,sortOrder:20},
+  {name:'Basın Haberi',type:'Basın / Haber',reportTopic:'Basın / Haber',platform:'',active:true,sortOrder:30},
+  {name:'Sağlık Taraması',type:'Sağlık Taraması',reportTopic:'Sağlık Taraması',platform:'',active:true,sortOrder:40},
+  {name:'Farkındalık Etkinliği',type:'Farkındalık Etkinliği',reportTopic:'Farkındalık Etkinliği',platform:'',active:true,sortOrder:50}
+];
 
 function loadQuickPrefs(){
   try{return JSON.parse(localStorage.getItem(QUICK_PREFS_KEY)||'{}');}
@@ -114,15 +116,15 @@ function applyLastUsed(){
   toggleConditionalFields();
 }
 
-function applyQuickTemplate(name){
-  const t=QUICK_TEMPLATES[name];
+function applyQuickTemplate(idOrName){
+  const t=activityTemplates.find(x=>x.id===idOrName) ||
+          activityTemplates.find(x=>x.name===idOrName);
   if(!t)return;
   if([...$('type').options].some(o=>o.value===t.type)) $('type').value=t.type;
   $('reportTopic').value=t.reportTopic||'';
   $('platform').value=t.platform||'';
   toggleConditionalFields();
-  if(t.focus==='participant') $('participants')?.focus();
-  else $('views')?.focus();
+  $('title')?.focus();
 }
 
 
@@ -147,6 +149,9 @@ reportMonth.value=defaultMonth;
 
 function populateDefs(){
     $('type').innerHTML = defaultTypes.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');
+  if($('templateType')){
+    $('templateType').innerHTML=defaultTypes.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');
+  }
 
   $('branch').innerHTML = '<option value="">Bölüm seçiniz</option>' +
     departments.slice().sort((a,b)=>a.name.localeCompare(b.name,'tr'))
@@ -360,9 +365,131 @@ if(photoFilesInput){
 }
 
 
-document.querySelectorAll('.template-btn').forEach(btn=>{
-  btn.addEventListener('click',()=>applyQuickTemplate(btn.dataset.template));
+$('quickTemplateButtons')?.addEventListener('click',e=>{
+  const btn=e.target.closest('.template-btn');
+  if(btn) applyQuickTemplate(btn.dataset.templateId);
 });
+
+
+function renderQuickTemplates(){
+  const box=$('quickTemplateButtons');
+  if(!box)return;
+  const active=activityTemplates
+    .filter(t=>t.active!==false)
+    .sort((a,b)=>(a.sortOrder||0)-(b.sortOrder||0) || a.name.localeCompare(b.name,'tr'));
+  box.innerHTML=active.length
+    ? active.map(t=>`<button type="button" class="template-btn" data-template-id="${esc(t.id)}">${esc(t.name)}</button>`).join('')
+    : '<span class="muted">Aktif şablon yok.</span>';
+}
+
+function renderTemplateList(){
+  const box=$('templateList');
+  if(!box)return;
+  const isAdmin=window.medikentCloud?.profile?.role==='admin';
+  box.innerHTML=activityTemplates
+    .slice()
+    .sort((a,b)=>(a.sortOrder||0)-(b.sortOrder||0) || a.name.localeCompare(b.name,'tr'))
+    .map(t=>`
+      <div class="manage-row">
+        <div>
+          <strong>${esc(t.name)}</strong>
+          <div class="muted">${esc(t.type)}${t.reportTopic?' • '+esc(t.reportTopic):''}${t.platform?' • '+esc(t.platform):''}</div>
+        </div>
+        <div class="manage-actions">
+          <span class="role-badge">${t.active!==false?'Aktif':'Pasif'}</span>
+          ${isAdmin?`
+            <button type="button" class="small-btn" onclick="editTemplate('${t.id}')">Düzenle</button>
+            <button type="button" class="small-btn" onclick="toggleTemplate('${t.id}')">${t.active!==false?'Pasif Yap':'Aktif Yap'}</button>
+            <button type="button" class="small-btn danger" onclick="deleteTemplate('${t.id}')">Sil</button>
+          `:''}
+        </div>
+      </div>`).join('');
+}
+
+async function loadTemplatesCloud(){
+  if(!window.medikentCloud?.enabled)return;
+  try{
+    activityTemplates=await window.medikentCloud.loadTemplates();
+    const isAdmin=window.medikentCloud?.profile?.role==='admin';
+    if($('templateForm')) $('templateForm').classList.toggle('smart-hidden',!isAdmin);
+    renderQuickTemplates();
+    renderTemplateList();
+  }catch(err){
+    console.error(err);
+    // Tablo henüz kurulmadıysa arayüz boş kalmasın; SQL kurulumu sonrası otomatik düzelir.
+    activityTemplates=[];
+    renderQuickTemplates();
+    renderTemplateList();
+  }
+}
+
+window.editTemplate=id=>{
+  const t=activityTemplates.find(x=>x.id===id); if(!t)return;
+  $('templateEditingId').value=t.id;
+  $('templateName').value=t.name;
+  $('templateType').value=t.type;
+  $('templateReportTopic').value=t.reportTopic||'';
+  $('templatePlatform').value=t.platform||'';
+  $('templateSaveBtn').textContent='Şablonu Güncelle';
+  $('templateCancelBtn').classList.remove('hidden');
+};
+
+window.toggleTemplate=async id=>{
+  const t=activityTemplates.find(x=>x.id===id); if(!t)return;
+  try{
+    const saved=await window.medikentCloud.saveTemplate({...t,active:t.active===false});
+    Object.assign(t,saved);
+    renderQuickTemplates(); renderTemplateList();
+  }catch(err){ alert('Şablon durumu değiştirilemedi: '+(err.message||err)); }
+};
+
+window.deleteTemplate=async id=>{
+  const t=activityTemplates.find(x=>x.id===id); if(!t)return;
+  if(!confirm(`"${t.name}" şablonu tamamen silinsin mi? Pasif yapmak daha güvenlidir.`))return;
+  try{
+    await window.medikentCloud.deleteTemplate(id);
+    activityTemplates=activityTemplates.filter(x=>x.id!==id);
+    renderQuickTemplates(); renderTemplateList();
+  }catch(err){ alert('Şablon silinemedi: '+(err.message||err)); }
+};
+
+function resetTemplateForm(){
+  $('templateForm')?.reset();
+  if($('templateEditingId')) $('templateEditingId').value='';
+  if($('templateSaveBtn')) $('templateSaveBtn').textContent='Şablon Ekle';
+  $('templateCancelBtn')?.classList.add('hidden');
+}
+
+$('templateCancelBtn')?.addEventListener('click',resetTemplateForm);
+
+$('templateForm')?.addEventListener('submit',async e=>{
+  e.preventDefault();
+  if(window.medikentCloud?.profile?.role!=='admin'){
+    alert('Şablon yönetimi yalnızca yöneticiye açıktır.');
+    return;
+  }
+  const id=$('templateEditingId').value;
+  const existing=activityTemplates.find(x=>x.id===id);
+  const draft={
+    ...(existing||{}),
+    id:id||undefined,
+    name:$('templateName').value.trim(),
+    type:$('templateType').value,
+    reportTopic:$('templateReportTopic').value.trim(),
+    platform:$('templatePlatform').value.trim(),
+    active:existing?.active!==false,
+    sortOrder:existing?.sortOrder ?? ((activityTemplates.length+1)*10)
+  };
+  try{
+    const saved=await window.medikentCloud.saveTemplate(draft);
+    const idx=activityTemplates.findIndex(x=>x.id===saved.id);
+    if(idx>=0) activityTemplates[idx]=saved; else activityTemplates.push(saved);
+    resetTemplateForm();
+    renderQuickTemplates(); renderTemplateList();
+  }catch(err){ alert('Şablon kaydedilemedi: '+(err.message||err)); }
+});
+
+window.addEventListener("medikent-cloud-ready",loadTemplatesCloud);
 
 $('reuseLastBtn')?.addEventListener('click',()=>{
   if(!activities.length){
