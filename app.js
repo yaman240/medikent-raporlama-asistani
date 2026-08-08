@@ -1,5 +1,4 @@
 const KEY='medikent_raporlama_v1';
-const DEFKEY='medikent_raporlama_def_v21';
 
 const defaultTypes = [
   'Sosyal Medya','Basın / Haber','Video','Eğitim','Gebe Okulu',
@@ -7,225 +6,58 @@ const defaultTypes = [
   'TV Programı','Radyo','Etkinlik','Diğer'
 ];
 
-const REQUIRED_DEPARTMENTS = [
-  {id:'dep-cocuk-sagligi', name:'Çocuk Sağlığı ve Hastalıkları'},
-  {id:'dep-cocuk-cerrahisi', name:'Çocuk Cerrahisi'},
-  {id:'dep-kadin-dogum', name:'Kadın Hastalıkları ve Doğum'},
-  {id:'dep-genel-cerrahi', name:'Genel Cerrahi'},
-  {id:'dep-kbb', name:'Kulak Burun Boğaz'},
-  {id:'dep-ortopedi', name:'Ortopedi ve Travmatoloji'},
-  {id:'dep-kvc', name:'Kalp ve Damar Cerrahisi'},
-  {id:'dep-kardiyoloji', name:'Kardiyoloji'},
-  {id:'dep-beyin-sinir', name:'Beyin ve Sinir Cerrahisi'},
-  {id:'dep-uroloji', name:'Üroloji'},
-  {id:'dep-cildiye', name:'Cildiye (Dermatoloji)'},
-  {id:'dep-dahiliye', name:'İç Hastalıkları (Dahiliye)'},
-  {id:'dep-algoloji', name:'Algoloji'},
-  {id:'dep-plastik', name:'Plastik, Rekonstrüktif ve Estetik Cerrahi'}
-];
+let departments=[];
+let doctors=[];
 
-const OFFICIAL_SEED_DOCTORS = [
-  // Çocuk Sağlığı ve Hastalıkları
-  {name:'Uzm. Dr. Metin TAN', departmentName:'Çocuk Sağlığı ve Hastalıkları'},
-  {name:'Uzm. Dr. Aydın VAROL', departmentName:'Çocuk Sağlığı ve Hastalıkları'},
-  {name:'Uzm. Dr. Gökhan GÖZÜN', departmentName:'Çocuk Sağlığı ve Hastalıkları'},
+// Eski Supabase/yerel sürümden kalmış faaliyetler varsa Supabase'e aktarabilmek için saklanır.
+let activities = JSON.parse(localStorage.getItem(KEY) || '[]');
 
-  // Çocuk Cerrahisi
-  {name:'Op. Dr. Mehmet ÇAKMAK', departmentName:'Çocuk Cerrahisi'},
-
-  // Kadın Hastalıkları ve Doğum
-  {name:'Prof. Dr. Hasan KAFALI', departmentName:'Kadın Hastalıkları ve Doğum'},
-  {name:'Op. Dr. Argun TUĞRAN', departmentName:'Kadın Hastalıkları ve Doğum'},
-  {name:'Op. Dr. Sevgin MERT', departmentName:'Kadın Hastalıkları ve Doğum'},
-  {name:'Uzm. Dr. Gökçem Büşra İNANÇ KARAMAN', departmentName:'Kadın Hastalıkları ve Doğum'},
-  {name:'Dr. Mustafa YILDIZ', departmentName:'Kadın Hastalıkları ve Doğum'},
-
-  // Genel Cerrahi
-  {name:'Op. Dr. Ferhat GEGA', departmentName:'Genel Cerrahi'},
-  {name:'Op. Dr. İbrahim KARAMANOĞLU', departmentName:'Genel Cerrahi'},
-  {name:'Op. Dr. Mustafa TERCAN', departmentName:'Genel Cerrahi'},
-
-  // Kulak Burun Boğaz
-  {name:'Prof. Dr. M. Kemal ADALI', departmentName:'Kulak Burun Boğaz'},
-  {name:'Op. Dr. İlhan ALTEKİN', departmentName:'Kulak Burun Boğaz'},
-  {name:'Dr. Celal KALKIŞIM', departmentName:'Kulak Burun Boğaz'},
-
-  // Ortopedi ve Travmatoloji
-  {name:'Op. Dr. Teoman DURUKAN', departmentName:'Ortopedi ve Travmatoloji'},
-  {name:'Op. Dr. Zafer GÜNEŞ', departmentName:'Ortopedi ve Travmatoloji'},
-  {name:'Op. Dr. Mahmut Sami OFLAZ', departmentName:'Ortopedi ve Travmatoloji'},
-
-  // Kalp ve Damar Cerrahisi
-  {name:'Prof. Dr. Turan EGE', departmentName:'Kalp ve Damar Cerrahisi'},
-  {name:'Op. Dr. Ahmet ŞAMİÖZEN', departmentName:'Kalp ve Damar Cerrahisi'},
-
-  // Kardiyoloji
-  {name:'Uzm. Dr. Haydar Başar CENGİZ', departmentName:'Kardiyoloji'},
-  {name:'Uzm. Dr. Barış AYGÜÇ', departmentName:'Kardiyoloji'},
-
-  // Beyin ve Sinir Cerrahisi
-  {name:'Op. Dr. Bahadır ALKAN', departmentName:'Beyin ve Sinir Cerrahisi'},
-
-  // Üroloji
-  {name:'Prof. Dr. İrfan H. ATAKAN', departmentName:'Üroloji'},
-  {name:'Op. Dr. H. Korhan ALTAN', departmentName:'Üroloji'},
-
-  // Cildiye
-  {name:'Uzm. Dr. Boratay Erin DEMİREL', departmentName:'Cildiye (Dermatoloji)'},
-
-  // İç Hastalıkları
-  {name:'Uzm. Dr. Ferdanes MUTLU', departmentName:'İç Hastalıkları (Dahiliye)'},
-  {name:'Uzm. Dr. Nehir Özlem PEHLİVAN', departmentName:'İç Hastalıkları (Dahiliye)'},
-  {name:'Uzm. Dr. Selçuk ÇUKUROVA', departmentName:'İç Hastalıkları (Dahiliye)'}
-];
-
-function deterministicDoctorId(name){
-  return 'doc-' + String(name)
-    .toLocaleLowerCase('tr')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g,'')
-    .replace(/ı/g,'i')
-    .replace(/ğ/g,'g')
-    .replace(/ü/g,'u')
-    .replace(/ş/g,'s')
-    .replace(/ö/g,'o')
-    .replace(/ç/g,'c')
-    .replace(/[^a-z0-9]+/g,'-')
-    .replace(/^-|-$/g,'');
+function localSave(){
+  localStorage.setItem(KEY,JSON.stringify(activities));
 }
-
-function ensureOfficialDoctorsLocal(){
-  const added=[];
-
-  for(const seed of OFFICIAL_SEED_DOCTORS){
-    const dep=departments.find(d=>normalizeTr(d.name)===normalizeTr(seed.departmentName));
-    if(!dep) continue;
-
-    const exists=doctors.some(d=>normalizeTr(d.name)===normalizeTr(seed.name));
-    if(exists) continue;
-
-    const doctor={
-      id:deterministicDoctorId(seed.name),
-      name:seed.name,
-      departmentId:dep.id,
-      departmentName:dep.name,
-      active:true,
-      source:'Medikent resmi hekim listesi'
-    };
-
-    doctors.push(doctor);
-    added.push(doctor);
-  }
-
-  if(added.length) saveMasterLocal();
-  return added;
-}
-
-
-let departments = JSON.parse(localStorage.getItem('medikent_departments_v21') || 'null') || [];
-
-function ensureRequiredDepartmentsLocal(){
-  const byName = new Set(
-    departments.map(d => (d.name || '').trim().toLocaleLowerCase('tr'))
-  );
-
-  for(const dep of REQUIRED_DEPARTMENTS){
-    const key = dep.name.trim().toLocaleLowerCase('tr');
-    if(!byName.has(key)){
-      departments.push({...dep});
-      byName.add(key);
-    }
-  }
-
-  localStorage.setItem('medikent_departments_v21', JSON.stringify(departments));
-}
-ensureRequiredDepartmentsLocal();
-
-let doctors = JSON.parse(localStorage.getItem('medikent_doctors_v21') || 'null') || [
-  {id:'doc-gokhan-gozun', name:'Uzm. Dr. Gökhan GÖZÜN', departmentId:'dep-cocuk-sagligi', departmentName:'Çocuk Sağlığı ve Hastalıkları', active:true}
-];
-
-function saveMasterLocal(){
-  localStorage.setItem('medikent_departments_v21', JSON.stringify(departments));
-  localStorage.setItem('medikent_doctors_v21', JSON.stringify(doctors));
-}
-saveMasterLocal();
-
-
-
-ensureOfficialDoctorsLocal();
-
-const sampleData = [
-  {
-    id: crypto.randomUUID(),
-    date:'2026-06-19',
-    title:'Fenilketonüri Bilgilendirme Videosu',
-    branch:'Çocuk Sağlığı ve Hastalıkları',
-    doctor:'Uzm. Dr. Gökhan Gözün',
-    type:'Sosyal Medya',
-    platform:'Instagram + Facebook',
-    views:5393,
-    reach:0,
-    likes:31,
-    engagement:27,
-    participants:0,
-    note:'Instagram: 3.979 görüntülenme, 31 beğeni, 9 etkileşim. Facebook: 1.414 görüntülenme, 18 etkileşim.'
-  },
-  {
-    id: crypto.randomUUID(),
-    date:'2026-06-25',
-    title:'Gebe Okulu – Yenidoğan Tarama Programı ve Fenilketonüri',
-    branch:'Çocuk Sağlığı ve Hastalıkları',
-    doctor:'Uzm. Dr. Gökhan Gözün',
-    type:'Gebe Okulu',
-    platform:'Medikent Hastanesi',
-    views:0, reach:0, likes:0, engagement:0, participants:5,
-    note:'Anne adayları yenidoğan tarama programı ve fenilketonürinin erken tanıdaki önemi hakkında bilgilendirildi.'
-  },
-  {
-    id: crypto.randomUUID(),
-    date:'2026-06-24',
-    title:'Fenilketonüri Bilgilendirme Yazısı',
-    branch:'Çocuk Sağlığı ve Hastalıkları',
-    doctor:'Uzm. Dr. Gökhan Gözün',
-    type:'Basın / Haber',
-    platform:'Trakya Burda Ajansı',
-    views:0, reach:0, likes:0, engagement:0, participants:0,
-    note:'Bilgilendirme yazısı ajansa iletildi.'
-  }
-];
-
-let activities = JSON.parse(localStorage.getItem(KEY) || 'null');
-if(!activities){ activities=sampleData; localSave(); }
-
-function localSave(){ localStorage.setItem(KEY,JSON.stringify(activities)); }
 function save(){ localSave(); }
 
 async function loadCloudIfAvailable(){
   if(!window.medikentCloud?.enabled) return;
+
   try{
-    const cloudRows = await window.medikentCloud.loadActivities();
-    if(Array.isArray(cloudRows) && cloudRows.length){
-      activities = cloudRows;
-      localSave();
-      const latest=latestActivityMonth();
-      if(monthFilter) monthFilter.value=latest;
-      if(reportMonth) reportMonth.value=latest;
-      renderAll();
-    }
-    const status = document.getElementById("cloudTransferStatus");
-    if(status){
-      status.textContent = cloudRows.length
-        ? `Bulutta ${cloudRows.length} kayıt bulundu.`
-        : "Bulutta henüz kayıt yok. İstersen mevcut yerel kayıtları aktarabilirsin.";
-    }
+    const [cloudDeps,cloudDocs,cloudRows]=await Promise.all([
+      window.medikentCloud.loadDepartments(),
+      window.medikentCloud.loadDoctors(),
+      window.medikentCloud.loadActivities()
+    ]);
+
+    departments=Array.isArray(cloudDeps)?cloudDeps:[];
+    doctors=Array.isArray(cloudDocs)?cloudDocs:[];
+    activities=Array.isArray(cloudRows)?cloudRows:[];
+
+    // İsimleri rapor/kayıt ekranında hızlı göstermek için yerelde tamamla.
+    activities=activities.map(a=>({
+      ...a,
+      branchName: departments.find(d=>d.id===a.branch)?.name || a.branchName || '',
+      doctorName: doctors.find(d=>d.id===a.doctor)?.name || a.doctorName || ''
+    }));
+
+    localSave();
+    populateDefs();
+    renderMasterLists();
+
+    const latest=latestActivityMonth();
+    if(monthFilter) monthFilter.value=latest;
+    if(reportMonth) reportMonth.value=latest;
+
+    const status=document.getElementById("cloudTransferStatus");
+    if(status) status.textContent=`Supabase aktif: ${activities.length} faaliyet, ${departments.length} bölüm, ${doctors.length} doktor.`;
+
+    renderAll();
   }catch(err){
     console.error(err);
-    alert("Firebase verileri alınamadı: " + (err.message || err));
+    alert("Supabase verileri alınamadı: "+(err.message||err));
   }
 }
 
-window.addEventListener("medikent-cloud-ready", loadCloudIfAvailable);
+window.addEventListener("medikent-cloud-ready",loadCloudIfAvailable);
+
 function fmt(n){ return Number(n||0).toLocaleString('tr-TR'); }
 function monthOf(date){ return (date||'').slice(0,7); }
 function esc(s=''){ return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
@@ -234,93 +66,13 @@ const $=id=>document.getElementById(id);
 let selectedPhotoFiles = [];
 let retainedExistingPhotos = [];
 
-const PHOTO_DB_NAME='medikent-raporlama-photos';
-const PHOTO_STORE='activityPhotos';
-
-function openPhotoDb(){
-  return new Promise((resolve,reject)=>{
-    const req=indexedDB.open(PHOTO_DB_NAME,1);
-    req.onupgradeneeded=()=>{
-      const db=req.result;
-      if(!db.objectStoreNames.contains(PHOTO_STORE)){
-        db.createObjectStore(PHOTO_STORE,{keyPath:'activityId'});
-      }
-    };
-    req.onsuccess=()=>resolve(req.result);
-    req.onerror=()=>reject(req.error);
-  });
-}
-
 async function getLocalPhotos(activityId){
-  if(!activityId) return [];
-  const db=await openPhotoDb();
-  return new Promise((resolve,reject)=>{
-    const tx=db.transaction(PHOTO_STORE,'readonly');
-    const store=tx.objectStore(PHOTO_STORE);
-    const req=store.get(activityId);
-    req.onsuccess=()=>resolve(req.result?.photos || []);
-    req.onerror=()=>reject(req.error);
-  });
+  if(!activityId || !window.medikentCloud?.enabled) return [];
+  return await window.medikentCloud.listActivityPhotos(activityId);
 }
 
-async function setLocalPhotos(activityId,photos){
-  const db=await openPhotoDb();
-  return new Promise((resolve,reject)=>{
-    const tx=db.transaction(PHOTO_STORE,'readwrite');
-    tx.objectStore(PHOTO_STORE).put({activityId,photos});
-    tx.oncomplete=()=>resolve();
-    tx.onerror=()=>reject(tx.error);
-  });
-}
+async function setLocalPhotos(){ return; }
 
-function fileToDataUrl(file){
-  return new Promise((resolve,reject)=>{
-    const reader=new FileReader();
-    reader.onload=()=>resolve(reader.result);
-    reader.onerror=reject;
-    reader.readAsDataURL(file);
-  });
-}
-
-async function compressImageFile(file){
-  const raw=await fileToDataUrl(file);
-  const img=await new Promise((resolve,reject)=>{
-    const i=new Image();
-    i.onload=()=>resolve(i);
-    i.onerror=reject;
-    i.src=raw;
-  });
-
-  const MAX=1600;
-  let w=img.width, h=img.height;
-  if(w>MAX || h>MAX){
-    const ratio=Math.min(MAX/w,MAX/h);
-    w=Math.round(w*ratio);
-    h=Math.round(h*ratio);
-  }
-
-  const canvas=document.createElement('canvas');
-  canvas.width=w; canvas.height=h;
-  const ctx=canvas.getContext('2d');
-  ctx.drawImage(img,0,0,w,h);
-
-  const dataUrl=canvas.toDataURL('image/jpeg',0.82);
-  return {
-    name:(file.name||'fotoğraf').replace(/\.[^.]+$/,'.jpg'),
-    dataUrl
-  };
-}
-
-async function prepareSelectedPhotos(){
-  const out=[];
-  for(const file of selectedPhotoFiles){
-    out.push(await compressImageFile(file));
-  }
-  return out;
-}
-
-const monthFilter=$('monthFilter');
-const reportMonth=$('reportMonth');
 function currentMonthValue(){
   const d=new Date();
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
@@ -334,8 +86,7 @@ monthFilter.value=defaultMonth;
 reportMonth.value=defaultMonth;
 
 function populateDefs(){
-  ensureRequiredDepartmentsLocal();
-  $('type').innerHTML = defaultTypes.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');
+    $('type').innerHTML = defaultTypes.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');
 
   $('branch').innerHTML = '<option value="">Bölüm seçiniz</option>' +
     departments.slice().sort((a,b)=>a.name.localeCompare(b.name,'tr'))
@@ -499,9 +250,20 @@ function renderExistingPhotos(){
     </div>`).join('');
 }
 
-window.removeExistingPhoto=i=>{
-  retainedExistingPhotos.splice(i,1);
-  renderExistingPhotos();
+window.removeExistingPhoto=async i=>{
+  const photo=retainedExistingPhotos[i];
+  if(!photo) return;
+  if(!confirm('Bu fotoğraf silinsin mi?')) return;
+  try{
+    if(window.medikentCloud?.enabled && photo.path){
+      await window.medikentCloud.deletePhoto(photo.path);
+    }
+    retainedExistingPhotos.splice(i,1);
+    renderExistingPhotos();
+  }catch(err){
+    console.error(err);
+    alert("Fotoğraf silinemedi: "+(err.message||err));
+  }
 };
 
 const photoFilesInput=$('photoFiles');
@@ -515,25 +277,17 @@ if(photoFilesInput){
 $('activityForm').addEventListener('submit',async e=>{
   e.preventDefault();
 
+  if(!window.medikentCloud?.enabled){
+    alert("Supabase bağlantısı aktif değil.");
+    return;
+  }
+
   const editingId=$('editingId').value;
   const activityId=editingId || crypto.randomUUID();
   const existing=editingId ? activities.find(a=>a.id===editingId) : null;
 
-  let localPhotos=[...retainedExistingPhotos];
-
-  try{
-    if(selectedPhotoFiles.length){
-      const prepared=await prepareSelectedPhotos();
-      localPhotos=[...localPhotos,...prepared];
-    }
-    await setLocalPhotos(activityId,localPhotos);
-  }catch(err){
-    console.error(err);
-    alert("Fotoğraflar bu cihazda saklanamadı: "+(err.message||err));
-    return;
-  }
-
-  const data={
+  const draft={
+    ...(existing||{}),
     id:activityId,
     date:$('date').value,
     title:$('title').value.trim(),
@@ -545,7 +299,6 @@ $('activityForm').addEventListener('submit',async e=>{
     type:$('type').value,
     platform:$('platform').value.trim(),
     socialLink:$('socialLink').value.trim(),
-    localPhotoCount:localPhotos.length,
     views:+$('views').value||0,
     reach:+$('reach').value||0,
     likes:+$('likes').value||0,
@@ -554,33 +307,34 @@ $('activityForm').addEventListener('submit',async e=>{
     note:$('note').value.trim()
   };
 
-  const draft={...(existing||{}),...data};
+  try{
+    await window.medikentCloud.saveActivity(draft);
 
-  if(window.medikentCloud?.enabled){
-    try{
-      await window.medikentCloud.saveActivity(draft);
-    }catch(err){
-      console.error(err);
-      alert("Faaliyet Firebase'e kaydedilemedi: "+(err.message||err));
-      return;
+    if(selectedPhotoFiles.length){
+      await window.medikentCloud.uploadActivityPhotos(activityId,selectedPhotoFiles);
     }
+
+    const photos=await window.medikentCloud.listActivityPhotos(activityId);
+    draft.localPhotoCount=photos.length;
+
+    const idx=activities.findIndex(a=>a.id===activityId);
+    if(idx>=0) activities[idx]=draft;
+    else activities.push(draft);
+    save();
+
+    const savedMonth=monthOf(draft.date);
+    if(savedMonth){
+      monthFilter.value=savedMonth;
+      reportMonth.value=savedMonth;
+    }
+
+    resetForm();
+    renderAll();
+    alert(editingId?'Kayıt güncellendi.':'Faaliyet Supabase’e kaydedildi.');
+  }catch(err){
+    console.error(err);
+    alert("Kayıt tamamlanamadı: "+(err.message||err));
   }
-
-  const idx=activities.findIndex(a=>a.id===activityId);
-  if(idx>=0) activities[idx]=draft;
-  else activities.push(draft);
-
-  save();
-
-  const savedMonth=monthOf(draft.date);
-  if(savedMonth){
-    monthFilter.value=savedMonth;
-    reportMonth.value=savedMonth;
-  }
-
-  resetForm();
-  renderAll();
-  alert(editingId?'Kayıt güncellendi.':'Faaliyet kaydedildi.');
 });
 function resetForm(){
   $('activityForm').reset();
@@ -697,7 +451,7 @@ window.removeActivity=async id=>{
       await window.medikentCloud.deleteActivity(id);
     }catch(err){
       console.error(err);
-      alert("Kayıt Firebase'den silinemedi: "+(err.message||err));
+      alert("Kayıt Supabase’den silinemedi: "+(err.message||err));
       return;
     }
   }
@@ -916,8 +670,7 @@ $('importFile').addEventListener('change',async e=>{
       if(Array.isArray(data.doctors)) doctors=data.doctors;
     }
     save();
-    saveMasterLocal();
-    populateDefs(); renderAll();
+        populateDefs(); renderAll();
     alert('Yedek geri yüklendi.');
   }catch{alert('Geçersiz yedek dosyası.');}
 });
@@ -925,110 +678,26 @@ $('importFile').addEventListener('change',async e=>{
 
 
 
-const seedDoctorsBtn=$('seedDoctorsBtn');
-if(seedDoctorsBtn){
-  seedDoctorsBtn.addEventListener('click',async ()=>{
-    seedDoctorsBtn.disabled=true;
-    const status=$('seedDoctorsStatus');
-    if(status) status.textContent='Hazır hekim kadrosu yükleniyor...';
-
-    try{
-      // Bölümleri önce kesin olarak hazırla.
-      ensureRequiredDepartmentsLocal();
-
-      // Firebase'den güncel bölüm kayıtlarını da al, isim bazında canonical eşle.
-      if(window.medikentCloud?.enabled){
-        try{
-          const cloudDeps=await window.medikentCloud.loadDepartments();
-          if(Array.isArray(cloudDeps)){
-            for(const dep of cloudDeps){
-              if(!departments.some(d=>normalizeTr(d.name)===normalizeTr(dep.name))){
-                departments.push(dep);
-              }
-            }
-          }
-        }catch(err){
-          console.warn('Bölüm listesi buluttan alınamadı, yerel bölüm listesi kullanılacak.',err);
-        }
-      }
-
-      ensureRequiredDepartmentsLocal();
-
-      // Mevcut doktorları Firebase'den al ve isim bazında birleştir.
-      if(window.medikentCloud?.enabled){
-        try{
-          const cloudDocs=await window.medikentCloud.loadDoctors();
-          if(Array.isArray(cloudDocs)){
-            for(const d of cloudDocs){
-              if(!doctors.some(x=>normalizeTr(x.name)===normalizeTr(d.name))){
-                doctors.push(d);
-              }
-            }
-          }
-        }catch(err){
-          console.warn('Doktor listesi buluttan alınamadı, yerel liste kullanılacak.',err);
-        }
-      }
-
-      // Hazır kadroyu ekle.
-      const added=ensureOfficialDoctorsLocal();
-
-      // Tüm seed doktorlarını doğru canonical bölüme bağla.
-      for(const seed of OFFICIAL_SEED_DOCTORS){
-        const dep=departments.find(d=>normalizeTr(d.name)===normalizeTr(seed.departmentName));
-        const doc=doctors.find(d=>normalizeTr(d.name)===normalizeTr(seed.name));
-        if(!dep || !doc) continue;
-
-        doc.departmentId=dep.id;
-        doc.departmentName=dep.name;
-        if(doc.active===undefined) doc.active=true;
-
-        if(window.medikentCloud?.enabled){
-          await window.medikentCloud.saveDoctor(doc);
-        }
-      }
-
-      saveMasterLocal();
-      populateDefs();
-      renderMasterLists();
-      renderAll();
-
-      const totalSeed=OFFICIAL_SEED_DOCTORS.filter(seed=>
-        doctors.some(d=>normalizeTr(d.name)===normalizeTr(seed.name))
-      ).length;
-
-      if(status){
-        status.textContent=`Hazır hekim kadrosu tamamlandı: ${totalSeed} doktor sistemde.`;
-      }
-      alert(`Hekim kadrosu yüklendi. Sistemde ${totalSeed} hazır doktor var.`);
-    }catch(err){
-      console.error(err);
-      if(status) status.textContent='Hekim kadrosu yüklenemedi.';
-      alert('Hekim kadrosu yüklenemedi: '+(err.message||err));
-    }finally{
-      seedDoctorsBtn.disabled=false;
-    }
-  });
-}
-
 const departmentForm=$('departmentForm');
 if(departmentForm){
   departmentForm.addEventListener('submit',async e=>{
     e.preventDefault();
     const name=$('departmentName').value.trim();
-    if(!name)return;
-    if(departments.some(d=>d.name.toLocaleLowerCase('tr')===name.toLocaleLowerCase('tr'))){
+    if(!name) return;
+    if(departments.some(d=>normalizeTr(d.name)===normalizeTr(name))){
       alert('Bu bölüm zaten tanımlı.');
       return;
     }
-    const dep={id:crypto.randomUUID(),name};
-    departments.push(dep);
-    saveMasterLocal();
-    populateDefs();
-    departmentForm.reset();
-    if(window.medikentCloud?.enabled){
-      try{await window.medikentCloud.saveDepartment(dep);}
-      catch(err){console.error(err);alert("Bölüm yerelde kaydedildi ancak Firebase'e gönderilemedi.");}
+    try{
+      const saved=await window.medikentCloud.saveDepartment({name,active:true});
+      departments.push(saved);
+      populateDefs();
+      renderMasterLists();
+      departmentForm.reset();
+      alert('Bölüm kaydedildi.');
+    }catch(err){
+      console.error(err);
+      alert("Bölüm kaydedilemedi: "+(err.message||err));
     }
   });
 }
@@ -1037,72 +706,55 @@ const doctorForm=$('doctorForm');
 if(doctorForm){
   doctorForm.addEventListener('submit',async e=>{
     e.preventDefault();
-
     const departmentId=$('doctorDepartment').value;
     const name=$('doctorName').value.trim();
-
     if(!departmentId || !name){
       alert('Bölüm ve doktor adı zorunludur.');
       return;
     }
-
-    if(doctors.some(d=>d.name.toLocaleLowerCase('tr')===name.toLocaleLowerCase('tr'))){
+    if(doctors.some(d=>normalizeTr(d.name)===normalizeTr(name))){
       alert('Bu doktor zaten tanımlı.');
       return;
     }
-
     const dep=departmentByAny(departmentId);
-    const doctor={
-      id:crypto.randomUUID(),
-      name,
-      departmentId: dep?.id || departmentId,
-      departmentName: dep?.name || '',
-      active:true
-    };
-
-    if(window.medikentCloud?.enabled){
-      try{
-        await window.medikentCloud.saveDoctor(doctor);
-      }catch(err){
-        console.error(err);
-        alert("Doktor Firebase'e kaydedilemedi. Kayıt tamamlanmadı: "+(err.message||err));
-        return;
-      }
+    try{
+      const saved=await window.medikentCloud.saveDoctor({
+        name,
+        departmentId,
+        departmentName:dep?.name||'',
+        active:true
+      });
+      doctors.push({...saved,departmentName:dep?.name||''});
+      populateDefs();
+      renderMasterLists();
+      doctorForm.reset();
+      alert('Doktor kaydedildi.');
+    }catch(err){
+      console.error(err);
+      alert("Doktor kaydedilemedi: "+(err.message||err));
     }
-
-    doctors.push(doctor);
-    saveMasterLocal();
-    populateDefs();
-    renderMasterLists();
-
-    // Faaliyet ekranında aynı bölüm seçiliyse doktor listesine anında düşür.
-    if($('branch').value===doctor.departmentId){
-      updateDoctors(doctor.id);
-    }
-
-    doctorForm.reset();
-    alert('Doktor kaydedildi.');
   });
 }
 
 window.saveDepartmentEdit=async id=>{
   const dep=departments.find(d=>d.id===id); if(!dep)return;
-  const input=document.getElementById(`dep-name-${id}`);
-  const name=(input?.value||'').trim();
+  const name=(document.getElementById(`dep-name-${id}`)?.value||'').trim();
   if(!name){ alert('Bölüm adı boş olamaz.'); return; }
-  if(departments.some(d=>d.id!==id && d.name.toLocaleLowerCase('tr')===name.toLocaleLowerCase('tr'))){
+  if(departments.some(d=>d.id!==id && normalizeTr(d.name)===normalizeTr(name))){
     alert('Bu bölüm adı zaten mevcut.');
     return;
   }
-  dep.name=name;
-  saveMasterLocal();
-  populateDefs();
-  renderAll();
-  if(window.medikentCloud?.enabled){
-    try{ await window.medikentCloud.saveDepartment(dep); }
-    catch(err){ console.error(err); alert("Bölüm güncellendi ancak Firebase'e gönderilemedi."); }
+  try{
+    const saved=await window.medikentCloud.saveDepartment({...dep,name});
+    Object.assign(dep,saved);
+    populateDefs();
+    renderMasterLists();
+    renderAll();
+    alert('Bölüm güncellendi.');
+  }catch(err){
+    console.error(err);
+    alert("Bölüm güncellenemedi: "+(err.message||err));
   }
-  alert('Bölüm güncellendi.');
 };
 
 window.saveDoctorEdit=async id=>{
@@ -1110,185 +762,52 @@ window.saveDoctorEdit=async id=>{
   const name=(document.getElementById(`doc-name-${id}`)?.value||'').trim();
   const departmentId=document.getElementById(`doc-dep-${id}`)?.value||'';
   if(!name || !departmentId){ alert('Doktor adı ve bölüm zorunludur.'); return; }
-  if(doctors.some(x=>x.id!==id && x.name.toLocaleLowerCase('tr')===name.toLocaleLowerCase('tr'))){
-    alert('Bu doktor zaten mevcut.');
-    return;
-  }
   const dep=departmentByAny(departmentId);
-  d.name=name;
-  d.departmentId=dep?.id || departmentId;
-  d.departmentName=dep?.name || '';
-  saveMasterLocal();
-  populateDefs();
-  renderAll();
-  if(window.medikentCloud?.enabled){
-    try{ await window.medikentCloud.saveDoctor(d); }
-    catch(err){ console.error(err); alert("Doktor güncellendi ancak Firebase'e gönderilemedi."); }
+  try{
+    const saved=await window.medikentCloud.saveDoctor({
+      ...d,name,departmentId,departmentName:dep?.name||'',active:d.active!==false
+    });
+    Object.assign(d,saved,{departmentName:dep?.name||''});
+    populateDefs();
+    renderMasterLists();
+    renderAll();
+    alert('Doktor güncellendi.');
+  }catch(err){
+    console.error(err);
+    alert("Doktor güncellenemedi: "+(err.message||err));
   }
-  alert('Doktor güncellendi.');
 };
 
 window.toggleDoctor=async id=>{
   const d=doctors.find(x=>x.id===id); if(!d)return;
-  d.active=d.active===false?true:false;
-  saveMasterLocal(); populateDefs(); renderAll();
-  if($('branch').value===d.departmentId){ updateDoctors(); }
-  if($('branch').value===d.departmentId){ updateDoctors(d.id); }
-  if(window.medikentCloud?.enabled){
-    try{await window.medikentCloud.saveDoctor(d);}
-    catch(err){console.error(err);alert("Doktor durumu değişti ancak Firebase'e gönderilemedi.");}
+  const next=d.active===false;
+  try{
+    const saved=await window.medikentCloud.saveDoctor({...d,active:next});
+    Object.assign(d,saved,{departmentName:d.departmentName});
+    populateDefs();
+    renderMasterLists();
+    renderAll();
+  }catch(err){
+    console.error(err);
+    alert("Doktor durumu değiştirilemedi: "+(err.message||err));
   }
 };
 
 async function loadMasterCloud(){
   if(!window.medikentCloud?.enabled) return;
-
   try{
-    const [cloudDeps, cloudDocs]=await Promise.all([
+    const [cloudDeps,cloudDocs]=await Promise.all([
       window.medikentCloud.loadDepartments(),
       window.medikentCloud.loadDoctors()
     ]);
-
-    ensureRequiredDepartmentsLocal();
-
-    const cloudDepartments=Array.isArray(cloudDeps)?cloudDeps:[];
-    const cloudDoctors=Array.isArray(cloudDocs)?cloudDocs:[];
-
-    // 1) Tek bir canonical bölüm listesi oluştur.
-    // Hazır bölümler öncelikli; aynı isimli eski Firebase bölümü tekrar eklenmez.
-    const canonicalByName=new Map();
-    const mergedDepartments=[];
-
-    for(const dep of REQUIRED_DEPARTMENTS){
-      const key=normalizeTr(dep.name);
-      const item={...dep};
-      canonicalByName.set(key,item);
-      mergedDepartments.push(item);
-    }
-
-    // Kullanıcının sonradan eklediği özel bölümleri de koru.
-    for(const dep of [...departments,...cloudDepartments]){
-      if(!dep?.name) continue;
-      const key=normalizeTr(dep.name);
-      if(!canonicalByName.has(key)){
-        canonicalByName.set(key,{...dep});
-        mergedDepartments.push({...dep});
-      }
-    }
-
-    departments=mergedDepartments;
-
-    // 2) ESKİ FIREBASE BÖLÜM ID -> CANONICAL BÖLÜM eşleme tablosu.
-    // Doktor kaybolmasının ana sebebi buydu.
-    const departmentAliasById=new Map();
-
-    for(const oldDep of cloudDepartments){
-      if(!oldDep?.id || !oldDep?.name) continue;
-      const canonical=canonicalByName.get(normalizeTr(oldDep.name));
-      if(canonical){
-        departmentAliasById.set(oldDep.id,canonical);
-      }
-    }
-
-    // Yerel eski ID'ler için de alias kur.
-    for(const oldDep of departments){
-      if(!oldDep?.id || !oldDep?.name) continue;
-      const canonical=canonicalByName.get(normalizeTr(oldDep.name));
-      if(canonical){
-        departmentAliasById.set(oldDep.id,canonical);
-      }
-    }
-
-    // Bilinen eski ID.
-    const childCanonical=canonicalByName.get(normalizeTr('Çocuk Sağlığı ve Hastalıkları'));
-    if(childCanonical){
-      departmentAliasById.set('dep-cocuk',childCanonical);
-    }
-
-    saveMasterLocal();
-
-    // 3) Firebase'de eksik canonical bölümleri ekle.
-    const cloudNames=new Set(cloudDepartments.map(d=>normalizeTr(d.name||'')));
-    for(const dep of departments){
-      const key=normalizeTr(dep.name);
-      if(!cloudNames.has(key)){
-        await window.medikentCloud.saveDepartment(dep);
-      }
-    }
-
-    // 4) Doktorları yerel + bulut birleştir.
-    const doctorMap=new Map();
-    for(const d of [...doctors,...cloudDoctors]){
-      if(!d?.id) continue;
-      // Buluttaki sürüm varsa onu sonradan geldiği için esas alır.
-      doctorMap.set(d.id,{...d});
-    }
-    doctors=[...doctorMap.values()];
-
-    // 5) Her doktorun bölümünü eski ID veya bölüm adından canonical bölüme taşı.
-    for(const d of doctors){
-      let canonical=null;
-
-      if(d.departmentName){
-        canonical=canonicalByName.get(normalizeTr(d.departmentName)) || null;
-      }
-
-      if(!canonical && d.departmentId){
-        canonical=departmentAliasById.get(d.departmentId) || null;
-      }
-
-      // departmentId aslında bölüm adı olarak kaydedilmiş eski kayıt desteği
-      if(!canonical && d.departmentId){
-        canonical=canonicalByName.get(normalizeTr(d.departmentId)) || null;
-      }
-
-      if(canonical){
-        const changed =
-          d.departmentId!==canonical.id ||
-          d.departmentName!==canonical.name;
-
-        d.departmentId=canonical.id;
-        d.departmentName=canonical.name;
-
-        if(changed){
-          await window.medikentCloud.saveDoctor(d);
-        }
-      }
-    }
-
-    // Yerelde olup bulutta bulunmayan doktorları da buluta gönder.
-    const cloudDoctorIds=new Set(cloudDoctors.map(d=>d.id));
-    for(const d of doctors){
-      if(!cloudDoctorIds.has(d.id)){
-        await window.medikentCloud.saveDoctor(d);
-      }
-    }
-
-    saveMasterLocal();
-
-    // Resmî başlangıç kadrosundan eksik olanları yerelde ekle.
-    ensureOfficialDoctorsLocal();
-
-    // Yeni eklenen resmî doktorlardan Firebase'de olmayanları gönder.
-    const existingCloudDoctorNames=new Set(cloudDoctors.map(d=>normalizeTr(d.name||'')));
-    for(const d of doctors){
-      if(!existingCloudDoctorNames.has(normalizeTr(d.name||''))){
-        await window.medikentCloud.saveDoctor(d);
-      }
-    }
-
-    saveMasterLocal();
+    departments=cloudDeps||[];
+    doctors=cloudDocs||[];
     populateDefs();
     renderMasterLists();
     renderAll();
-
   }catch(err){
     console.error(err);
-    ensureRequiredDepartmentsLocal();
-    populateDefs();
-    renderMasterLists();
-    renderAll();
-    alert("Bölüm/Doktor senkronunda sorun oluştu: "+(err.message||err));
+    alert("Bölüm/Doktor verileri Supabase’den alınamadı: "+(err.message||err));
   }
 }
 window.addEventListener("medikent-cloud-ready",loadMasterCloud);
@@ -1297,23 +816,23 @@ const cloudUploadBtn = document.getElementById("cloudUploadBtn");
 if(cloudUploadBtn){
   cloudUploadBtn.onclick = async ()=>{
     if(!window.medikentCloud?.enabled){
-      alert("Önce Google hesabınızla giriş yapın.");
+      alert("Önce e-posta ve şifrenizle giriş yapın.");
       return;
     }
     if(!activities.length){
       alert("Aktarılacak kayıt bulunmuyor.");
       return;
     }
-    if(!confirm(`${activities.length} kayıt Firebase'e aktarılacak. Devam edilsin mi?`)) return;
+    if(!confirm(`${activities.length} eski yerel kayıt Supabase’e aktarılacak. Devam edilsin mi?`)) return;
 
     cloudUploadBtn.disabled = true;
     const status = document.getElementById("cloudTransferStatus");
-    if(status) status.textContent = "Buluta aktarılıyor...";
+    if(status) status.textContent = "Supabase’e aktarılıyor...";
 
     try{
       const count = await window.medikentCloud.uploadActivities(activities);
-      if(status) status.textContent = `${count} kayıt Firebase'e aktarıldı.`;
-      alert(`${count} kayıt buluta aktarıldı.`);
+      if(status) status.textContent = `${count} kayıt Supabase’e aktarıldı.`;
+      alert(`${count} kayıt Supabase’e aktarıldı.`);
       await loadCloudIfAvailable();
     }catch(err){
       console.error(err);
@@ -1326,7 +845,6 @@ if(cloudUploadBtn){
 }
 
 function renderAll(){renderStats();renderRecords();generateReport().catch(console.error);}
-ensureRequiredDepartmentsLocal();
 populateDefs();
 toggleConditionalFields();
 renderAll();
