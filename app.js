@@ -31,6 +31,17 @@ async function loadCloudIfAvailable(){
     doctors=Array.isArray(cloudDocs)?cloudDocs:[];
     activities=Array.isArray(cloudRows)?cloudRows:[];
 
+    // Supabase Storage'daki fotoğraf sayılarını faaliyetlere bağla.
+    for(const a of activities){
+      try{
+        const photos=await window.medikentCloud.listActivityPhotos(a.id);
+        a.localPhotoCount=photos.length;
+      }catch(err){
+        console.warn("Fotoğraf sayısı alınamadı:",a.id,err);
+        a.localPhotoCount=0;
+      }
+    }
+
     // İsimleri rapor/kayıt ekranında hızlı göstermek için yerelde tamamla.
     activities=activities.map(a=>({
       ...a,
@@ -543,7 +554,7 @@ async function generateReport(){
         ${stats.length?`<ul class="report-stats">${stats.join('')}</ul>`:''}
         ${a.note?`<p>${esc(a.note)}</p>`:''}
         ${a.socialLink?`<div class="report-link">Bağlantı: ${esc(a.socialLink)}</div>`:''}
-        ${photos.length?`<div class="report-photo-grid">${photos.map(p=>`<img src="${p.dataUrl}" alt="Faaliyet fotoğrafı">`).join('')}</div>`:''}
+        ${photos.length?`<div class="report-photo-grid">${photos.map(p=>`<img src="${p.dataUrl || p.url || ''}" alt="Faaliyet fotoğrafı">`).join('')}</div>`:''}
       </div>
       <hr class="report-divider">
     `);

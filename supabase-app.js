@@ -53,11 +53,17 @@ async function getProfile(userId){
   return data;
 }
 
-async function signedUrlFor(path){
-  const {data,error} = await supabase.storage.from(BUCKET).createSignedUrl(path, 60*60);
-  if(error) throw error;
-  return data.signedUrl;
+
+function blobToDataUrl(blob){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=()=>resolve(reader.result);
+    reader.onerror=()=>reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
 }
+
+
 
 async function activateUser(user){
   const profile = await getProfile(user.id);
@@ -219,34 +225,70 @@ async function activateUser(user){
       sortBy:{column:"created_at",order:"asc"}
     });
     if(error) throw error;
-    const files=(data||[]).filter(x=>x.name && x.id);
+
+    const files=(data||[]).filter(x=>x.name && x.name!==".emptyFolderPlaceholder");
     const out=[];
+
     for(const f of files){
       const path=`${activityId}/${f.name}`;
-      const url=await signedUrlFor(path);
-      out.push({name:f.name,path,url});
+
+      const {data:blob,error:downloadError}=await supabase.storage
+        .from(BUCKET)
+        .download(path);
+
+      if(downloadError){
+        console.error("Fotoğraf indirilemedi:",path,downloadError);
+        continue;
+      }
+
+      const dataUrl=await blobToDataUrl(blob);
+
+      out.push({
+        name:f.name,
+        path,
+        dataUrl,
+        url:dataUrl
+      });
     }
+
     return out;
   };
 
   window.medikentCloud.uploadActivityPhotos = async (activityId,files)=>{
     const out=[];
+
     for(const file of files){
       const ext=(file.name.split(".").pop()||"jpg").toLowerCase();
       const safeBase=(file.name.replace(/\.[^.]+$/,"")||"foto")
         .replace(/[^a-zA-Z0-9_-]+/g,"-")
         .slice(0,50);
+
       const filename=`${Date.now()}-${crypto.randomUUID()}-${safeBase}.${ext}`;
       const path=`${activityId}/${filename}`;
+
       const {error}=await supabase.storage.from(BUCKET).upload(path,file,{
         cacheControl:"3600",
         upsert:false,
         contentType:file.type
       });
       if(error) throw error;
-      const url=await signedUrlFor(path);
-      out.push({name:file.name,path,url});
+
+      const {data:blob,error:downloadError}=await supabase.storage
+        .from(BUCKET)
+        .download(path);
+
+      if(downloadError) throw downloadError;
+
+      const dataUrl=await blobToDataUrl(blob);
+
+      out.push({
+        name:file.name,
+        path,
+        dataUrl,
+        url:dataUrl
+      });
     }
+
     return out;
   };
 
