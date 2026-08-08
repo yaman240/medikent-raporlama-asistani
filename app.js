@@ -365,8 +365,69 @@ document.querySelectorAll('.template-btn').forEach(btn=>{
 });
 
 $('reuseLastBtn')?.addEventListener('click',()=>{
-  applyLastUsed();
+  if(!activities.length){
+    alert('Tekrar kullanılabilecek önceki faaliyet yok.');
+    return;
+  }
+
+  const last=[...activities]
+    .filter(a=>a && a.date)
+    .sort((a,b)=>{
+      const dc=(b.date||'').localeCompare(a.date||'');
+      if(dc!==0) return dc;
+      return String(b.id||'').localeCompare(String(a.id||''));
+    })[0];
+
+  if(!last){
+    alert('Tekrar kullanılabilecek önceki faaliyet yok.');
+    return;
+  }
+
+  resetForm();
+
+  $('editingId').value='';
+  $('formTitle').textContent='Yeni Faaliyet';
+  $('editBadge').classList.add('hidden');
+  $('cancelEdit').classList.add('hidden');
+
+  // Yeni kayıt olarak bugünün tarihiyle başlat.
+  $('date').value=new Date().toISOString().slice(0,10);
+
+  $('title').value=last.title||'';
+  $('reportTopic').value=last.reportTopic||'';
+
+  if(last.branch && departments.some(d=>d.id===last.branch)){
+    $('branch').value=last.branch;
+    updateDoctors(last.doctor||'');
+  }
+
+  if(last.type && [...$('type').options].some(o=>o.value===last.type)){
+    $('type').value=last.type;
+  }
+
+  $('platform').value=last.platform||'';
+  $('socialLink').value=last.socialLink||'';
+  $('note').value=last.note||'';
+
+  // Sayısal veriler yeni faaliyet için sıfırlanır.
+  $('views').value=0;
+  $('reach').value=0;
+  $('likes').value=0;
+  $('engagement').value=0;
+  $('participants').value=0;
+
+  // Fotoğraflar güvenlik ve yanlış raporlama riski nedeniyle kopyalanmaz.
+  selectedPhotoFiles=[];
+  retainedExistingPhotos=[];
+  if($('photoFiles')) $('photoFiles').value='';
+  if($('photoPreview')) $('photoPreview').innerHTML='';
+  if($('existingPhotos')) $('existingPhotos').innerHTML='';
+
+  toggleConditionalFields();
+  document.querySelector('[data-view="new"]')?.click();
   $('title')?.focus();
+
+  alert('Son faaliyet yeni kayıt olarak hazırlandı. Tarih ve fotoğrafı kontrol edip kaydedebilirsin.');
 });
 
 $('saveAndReportBtn')?.addEventListener('click',()=>{

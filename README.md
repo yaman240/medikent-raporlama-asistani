@@ -1,20 +1,32 @@
-# Medikent Raporlama Asistanı v4.3 — Hızlı Kayıt
+# Medikent Raporlama Asistanı v4.4
 
-Bu sürüm günlük faaliyet girişini hızlandırır.
+## Son Faaliyeti Tekrar Kullan düzeltmesi
 
-## Yeni özellikler
-- Faaliyet türüne göre akıllı alan gösterimi
-- Hızlı şablonlar:
-  - Gebe Okulu
-  - Doktor Videosu
-  - Basın Haberi
-  - Sağlık Taraması
-  - Farkındalık Etkinliği
-- Son kullanılan bölüm/doktor/tür/platform/rapor konusunu hatırlama
-- Son Kaydı Tekrar Kullan
-- Kaydet & Rapora Git
-- Kayıtlar ekranında Tekrarla
-- Tekrarlanan kayıtta istatistikler ve fotoğraflar sıfırdan başlar
+v4.3'te bu buton yalnızca son kullanılan bölüm/doktor/tür tercihlerini uyguluyordu.
+Bu yüzden kullanıcıya görünür bir işlem olmamış gibi hissedilebiliyordu.
+
+v4.4'te buton artık gerçek son faaliyeti yeni kayıt olarak hazırlar:
+
+Kopyalananlar:
+- Faaliyet başlığı
+- Rapor konusu
+- Bölüm
+- Doktor
+- Faaliyet türü
+- Platform
+- Sosyal medya / haber linki
+- Not
+
+Sıfırlananlar:
+- Tarih bugünün tarihi olur
+- Görüntülenme
+- Erişim
+- Beğeni
+- Etkileşim
+- Katılımcı
+- Fotoğraflar
+
+Fotoğraflar bilinçli olarak kopyalanmaz.
 
 ## GitHub'a yüklenecek dosyalar
 - index.html
