@@ -635,17 +635,64 @@ async function downloadWordReport(){
   setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 }
 
+
+async function waitForReportImages(){
+  const images=[...$('reportOutput').querySelectorAll('img')];
+
+  await Promise.all(images.map(img=>{
+    if(img.complete && img.naturalWidth>0){
+      if(img.decode){
+        return img.decode().catch(()=>{});
+      }
+      return Promise.resolve();
+    }
+
+    return new Promise(resolve=>{
+      const done=()=>resolve();
+      img.addEventListener('load',done,{once:true});
+      img.addEventListener('error',done,{once:true});
+      setTimeout(done,5000);
+    });
+  }));
+
+  // html2canvas'in son çizimi tamamlaması için iki frame bekle.
+  await new Promise(resolve=>requestAnimationFrame(
+    ()=>requestAnimationFrame(resolve)
+  ));
+}
+
 async function downloadPdfReport(){
   await generateReport();
+  await waitForReportImages();
+
   const element=$('reportOutput');
+
+  // PDF üretmeden hemen önce tüm görsellerin gerçek boyutta oluştuğunu doğrula.
+  const broken=[...element.querySelectorAll('img')].filter(
+    img=>!img.complete || img.naturalWidth===0
+  );
+
+  if(broken.length){
+    alert("Bazı faaliyet fotoğrafları PDF için hazırlanamadı. Lütfen birkaç saniye sonra tekrar deneyin.");
+    return;
+  }
+
   const opt={
     margin:[10,10,10,10],
     filename:reportFileBase()+'.pdf',
-    image:{type:'jpeg',quality:0.96},
-    html2canvas:{scale:2,useCORS:true,allowTaint:false},
+    image:{type:'jpeg',quality:0.98},
+    html2canvas:{
+      scale:2,
+      useCORS:true,
+      allowTaint:true,
+      logging:false,
+      imageTimeout:15000,
+      backgroundColor:'#ffffff'
+    },
     jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},
-    pagebreak:{mode:['css','legacy'],avoid:['.report-section']}
+    pagebreak:{mode:['css','legacy'],avoid:['.report-section','.report-photo-grid']}
   };
+
   await html2pdf().set(opt).from(element).save();
 }
 

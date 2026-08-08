@@ -1,19 +1,17 @@
-# Medikent Raporlama Asistanı v4.1 — Supabase Fotoğraf Düzeltmesi
+# Medikent Raporlama Asistanı v4.2 — PDF Fotoğraf Düzeltmesi
 
 ## Düzeltilen sorun
-v4.0'da faaliyet fotoğrafı Supabase Storage'a yüklenebiliyor ancak uygulama ve raporda kırık/boş görünebiliyordu.
+Faaliyet fotoğrafı Supabase'den başarıyla geliyor ve düzenleme ekranında görünüyordu,
+ancak PDF oluşturulurken html2pdf/html2canvas fotoğraf yüklenmesini tamamlamadan
+çıktı üretmeye başlayabiliyordu.
 
-## v4.1 çözümü
-Fotoğraflar artık signed URL ile gösterilmiyor.
-
-Uygulama:
-1. Supabase Storage'daki dosyayı yetkili oturumla indirir.
-2. Tarayıcıda Data URL'e çevirir.
-3. Kayıt düzenleme ekranında gösterir.
-4. Rapor ekranına gömer.
-5. PDF ve Word çıktısında aynı gömülü görseli kullanır.
-
-Bu yaklaşım özel (private) bucket ile daha güvenilir çalışır.
+## v4.2
+- Rapor önce tamamen oluşturulur.
+- Rapordaki bütün fotoğrafların yüklenmesi beklenir.
+- Görsellerin naturalWidth değeri kontrol edilir.
+- Sonra PDF oluşturulur.
+- Fotoğraf henüz hazır değilse boş PDF üretmek yerine kullanıcı uyarılır.
+- PDF'de görsel kalite ayarı yükseltilmiştir.
 
 ## GitHub'a yüklenecek dosyalar
 - index.html
@@ -21,5 +19,3 @@ Bu yaklaşım özel (private) bucket ile daha güvenilir çalışır.
 - style.css
 - supabase-app.js
 - README.md
-
-Eski firebase-app.js repoda dursa bile index.html tarafından çağrılmadığı için çalışmaz.
