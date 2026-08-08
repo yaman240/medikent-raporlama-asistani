@@ -1224,7 +1224,34 @@ if(cloudUploadBtn){
   };
 }
 
-function renderAll(){renderStats();renderRecords();generateReport().catch(console.error);}
+
+function dashboardMonthRows(){const m=$('monthFilter')?.value||currentMonthValue();return activities.filter(a=>monthOf(a.date)===m);}
+function goView(n){document.querySelector(`[data-view="${n}"]`)?.click();}
+function renderDashboardExtras(){
+ const rows=dashboardMonthRows(), checks=[
+ ['photo','📷',rows.filter(a=>!(+a.localPhotoCount>0)),'kayıt fotoğrafsız'],
+ ['doctor','👨‍⚕️',rows.filter(a=>!a.doctor),'kayıtta doktor seçilmemiş'],
+ ['branch','🏥',rows.filter(a=>!a.branch),'kayıtta bölüm seçilmemiş'],
+ ['topic','📄',rows.filter(a=>!(a.reportTopic||'').trim()),'kayıtta rapor konusu eksik']];
+ const miss=checks.filter(x=>x[2].length);
+ if($('dashboardWarnings')) $('dashboardWarnings').innerHTML=miss.length?miss.map(x=>`<button class="warning-row" data-missing="${x[0]}"><span>${x[1]}</span><strong>${x[2].length} ${x[3]}</strong><span>Görüntüle ›</span></button>`).join(''):'<div class="all-ready">✅ Bu ay için eksik kayıt görünmüyor.</div>';
+ if($('dashboardReadyBadge')) $('dashboardReadyBadge').textContent=`${rows.length} faaliyet`;
+ const recent=[...rows].sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,5);
+ if($('recentActivities')) $('recentActivities').innerHTML=recent.length?recent.map(a=>`<div class="recent-row"><div><strong>${esc(a.title||'Faaliyet')}</strong><div class="muted">${esc(a.date||'')} • ${esc(a.branchName||'Bölüm yok')} • 📷 ${+a.localPhotoCount||0}</div></div><div class="manage-actions"><button class="small-btn" onclick="editActivity('${a.id}')">Düzenle</button><button class="small-btn" onclick="duplicateActivity('${a.id}')">Tekrarla</button></div></div>`).join(''):'<p class="muted">Bu ay faaliyet yok.</p>';
+ const rank=(key,name,target)=>{const map=new Map();rows.forEach(a=>{if(a[key]&&a[name])map.set(a[name],(map.get(a[name])||0)+1)});const ar=[...map].sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0],'tr')).slice(0,10);if($(target))$(target).innerHTML=ar.length?ar.map(([n,c],i)=>`<div class="rank-row"><span><b>${i+1}.</b> ${esc(n)}</span><strong>${c}</strong></div>`).join(''):'<p class="muted">Veri yok.</p>';};
+ rank('branch','branchName','departmentActivitySummary');rank('doctor','doctorName','doctorActivitySummary');
+}
+function showMissingRecords(kind){const r=dashboardMonthRows().filter(a=>kind==='photo'?!(+a.localPhotoCount>0):kind==='doctor'?!a.doctor:kind==='branch'?!a.branch:!(a.reportTopic||'').trim());goView('records');if(r.length){const ids=new Set(r.map(a=>a.id));activities.sort((a,b)=>(ids.has(b.id)?1:0)-(ids.has(a.id)?1:0));renderRecords();}}
+function renderAll(){renderStats();renderRecords();generateReport().catch(console.error);renderDashboardExtras();
+}
 populateDefs();
 toggleConditionalFields();
 renderAll();
+
+$('refreshStats')?.addEventListener('click',renderDashboardExtras);
+$('monthFilter')?.addEventListener('change',renderAll);
+$('dashNew')?.addEventListener('click',()=>goView('new'));
+$('dashRepeat')?.addEventListener('click',()=>$('reuseLastBtn')?.click());
+$('dashMonthlyReport')?.addEventListener('click',async()=>{if($('reportMonth'))$('reportMonth').value=$('monthFilter').value||currentMonthValue();goView('report');await generateReport();});
+$('dashNoPhoto')?.addEventListener('click',()=>showMissingRecords('photo'));
+$('dashboardWarnings')?.addEventListener('click',e=>{const b=e.target.closest('[data-missing]');if(b)showMissingRecords(b.dataset.missing);});

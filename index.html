@@ -18,7 +18,7 @@
         <span id="userName"></span>
         <button id="logoutBtn" class="secondary hidden">Çıkış</button>
       </div>
-      <span class="version">v4.5</span>
+      <span class="version">v4.6</span>
       <button id="printBtn" class="secondary">Yazdır</button>
     </div>
   </header>
@@ -53,7 +53,12 @@
           <div class="card"><span>Katılımcı</span><strong id="statParticipants">0</strong></div>
         </div>
 
-        <div class="dashboard-grid">
+        <div class="dashboard-actions panel">
+<div class="panel-head"><h2>Hızlı İşlemler</h2><span class="muted">Sık kullanılan işlemler</span></div>
+<div class="dash-action-grid"><button id="dashNew">➕ Yeni Faaliyet</button><button id="dashRepeat" class="secondary">⚡ Son Faaliyeti Tekrarla</button><button id="dashMonthlyReport" class="secondary">📄 Bu Ayın Raporunu Hazırla</button><button id="dashNoPhoto" class="secondary">📷 Fotoğrafsız Kayıtları Göster</button></div></div>
+<div class="dashboard-grid dashboard-status-grid"><div class="panel"><div class="panel-head"><h2>Eksikler / Yapılacaklar</h2><span id="dashboardReadyBadge" class="role-badge"></span></div><div id="dashboardWarnings"></div></div><div class="panel"><h2>Son Faaliyetler</h2><div id="recentActivities"></div></div></div>
+<div class="dashboard-grid"><div class="panel"><h2>Bölümlere Göre Faaliyet</h2><div id="departmentActivitySummary"></div></div><div class="panel"><h2>Doktorlara Göre Faaliyet</h2><div id="doctorActivitySummary"></div></div></div>
+<div class="dashboard-grid">
           <div class="panel">
             <h2>Aylık Özet</h2>
             <div id="monthlySummary" class="report-text"></div>
